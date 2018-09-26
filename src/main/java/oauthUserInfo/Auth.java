@@ -54,15 +54,15 @@ public class Auth extends HttpServlet {
 	}
 	
 	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
-		return new URL(req.getScheme(), req.getServerName(), req.getServerPort(), "/oauthUserInfo").toString();
+		return new URL(req.getScheme(), req.getServerName(), req.getServerPort(), "/oauthUserInfo-1.0/oauthUserInfo").toString();
 	}
 	
 	private static String getClientId() {
-		return System.getenv("CLIENT_ID");
+		return System.getProperty("OAUTH_CLIENT_ID");
 	}
 	
 	private static String getClientSecret() {
-		return System.getenv("CLIENT_SECRET");
+		return System.getProperty("OAUTH_CLIENT_SECRET");
 	}
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
