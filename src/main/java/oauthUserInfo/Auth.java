@@ -136,20 +136,23 @@ public class Auth extends HttpServlet {
 		return getProperty(key, true);
 	}
 	
+	private static boolean missing(String s) {
+		return StringUtils.isEmpty(s) || "null".equals(s);
+	}
 
 	public static String getProperty(String key, boolean required) {
 		initProperties();
 		{
+			String embeddedProperty = properties.getProperty(key);
+			if (!missing(embeddedProperty)) return embeddedProperty;
+		}
+		{
 			String environmentVariable = System.getenv(key);
-			if (!StringUtils.isEmpty(environmentVariable)) return environmentVariable;
+			if (!missing(environmentVariable)) return environmentVariable;
 		}
 		{
 			String commandlineOption = System.getProperty(key);
-			if (!StringUtils.isEmpty(commandlineOption)) return commandlineOption;
-		}
-		{
-			String embeddedProperty = properties.getProperty(key);
-			if (!StringUtils.isEmpty(embeddedProperty)) return embeddedProperty;
+			if (!missing(commandlineOption)) return commandlineOption;
 		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
