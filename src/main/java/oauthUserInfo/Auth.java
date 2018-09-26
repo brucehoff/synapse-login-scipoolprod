@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.Security;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +13,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang.StringUtils;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
 import org.scribe.model.Response;
@@ -21,13 +21,10 @@ import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
-import org.apache.commons.lang.StringUtils;
-
-import com.google.appengine.repackaged.com.google.common.base.StringUtil;
 
 
 public class Auth extends HttpServlet {
-	private Logger logger = Logger.getLogger("Auth");
+	private static Logger logger = Logger.getLogger("Auth");
 
     private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
     private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
@@ -56,15 +53,22 @@ public class Auth extends HttpServlet {
 	private static final String URI_ROOT = ""; // was /oauthUserInfo-1.0
 	
 	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
-		return new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo").toString();
+		String result = (new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo")).toString();
+		logger.log(Level.INFO, "server-name="+req.getServerName());
+		logger.log(Level.INFO, "redir url="+result);
+		return result;
 	}
 	
 	private static String getClientId() {
-		return getProperty("OAUTH_CLIENT_ID");
+		String result = getProperty("OAUTH_CLIENT_ID");
+		logger.log(Level.INFO, "OAUTH_CLIENT_ID="+result);
+		return result;
 	}
 	
 	private static String getClientSecret() {
-		return getProperty("OAUTH_CLIENT_SECRET");
+		String result =  getProperty("OAUTH_CLIENT_SECRET");
+		logger.log(Level.INFO, "OAUTH_CLIENT_SECRET="+result);
+		return result;
 	}
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
