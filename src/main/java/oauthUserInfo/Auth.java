@@ -2,9 +2,11 @@
 package oauthUserInfo;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.Security;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,16 +55,18 @@ public class Auth extends HttpServlet {
 		}
 	}
 	
+	private static final String URI_ROOT = ""; // was /oauthUserInfo-1.0
+	
 	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
-		return new URL(req.getScheme(), req.getServerName(), req.getServerPort(), "/oauthUserInfo-1.0/oauthUserInfo").toString();
+		return new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo").toString();
 	}
 	
 	private static String getClientId() {
-		return System.getProperty("OAUTH_CLIENT_ID");
+		return getProperty("OAUTH_CLIENT_ID");
 	}
 	
 	private static String getClientSecret() {
-		return System.getProperty("OAUTH_CLIENT_SECRET");
+		return getProperty("OAUTH_CLIENT_SECRET");
 	}
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
@@ -104,4 +108,43 @@ public class Auth extends HttpServlet {
 		resp.getOutputStream().println(response.getBody());
 		resp.setStatus(200);
 	}
+	
+	
+	private static Properties properties = null;
+
+	public static void initProperties() {
+		if (properties!=null) return;
+		properties = new Properties();
+		InputStream is = null;
+		try {
+			is = Auth.class.getClassLoader().getResourceAsStream("global.properties");
+			properties.load(is);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			if (is!=null) try {
+				is.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static String getProperty(String key) {
+		return getProperty(key, true);
+	}
+	
+
+	public static String getProperty(String key, boolean required) {
+		initProperties();
+		String environmentVariable = System.getenv(key);
+		if (environmentVariable!=null) return environmentVariable;
+		String commandlineOption = System.getProperty(key);
+		if (commandlineOption!=null) return commandlineOption;
+		String embeddedProperty = properties.getProperty(key);
+		if (embeddedProperty!=null) return embeddedProperty;
+		if (required) throw new RuntimeException("Cannot find value for "+key);
+		return null;
+	}
+
 }
