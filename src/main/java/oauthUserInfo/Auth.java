@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
 import org.scribe.model.Response;
@@ -22,6 +21,9 @@ import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
+import org.apache.commons.lang.StringUtils;
+
+import com.google.appengine.repackaged.com.google.common.base.StringUtil;
 
 
 public class Auth extends HttpServlet {
@@ -39,11 +41,7 @@ public class Auth extends HttpServlet {
 	public static final String FAMILY_NAME = "family_name";
 	
 	private static final String SCOPE_EMAIL = "email";
-	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
-	
+
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -137,12 +135,18 @@ public class Auth extends HttpServlet {
 
 	public static String getProperty(String key, boolean required) {
 		initProperties();
-		String environmentVariable = System.getenv(key);
-		if (environmentVariable!=null) return environmentVariable;
-		String commandlineOption = System.getProperty(key);
-		if (commandlineOption!=null) return commandlineOption;
-		String embeddedProperty = properties.getProperty(key);
-		if (embeddedProperty!=null) return embeddedProperty;
+		{
+			String environmentVariable = System.getenv(key);
+			if (!StringUtils.isEmpty(environmentVariable)) return environmentVariable;
+		}
+		{
+			String commandlineOption = System.getProperty(key);
+			if (!StringUtils.isEmpty(commandlineOption)) return commandlineOption;
+		}
+		{
+			String embeddedProperty = properties.getProperty(key);
+			if (!StringUtils.isEmpty(embeddedProperty)) return embeddedProperty;
+		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
 	}
