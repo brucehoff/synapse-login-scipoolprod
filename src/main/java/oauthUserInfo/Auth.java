@@ -53,10 +53,10 @@ public class Auth extends HttpServlet {
 	private static final String URI_ROOT = ""; // was /oauthUserInfo-1.0
 	
 	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
-		String result = (new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo")).toString();
-		logger.log(Level.INFO, "server-name="+req.getServerName());
-		logger.log(Level.INFO, "redir url="+result);
-		return result;
+//		String result = (new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo")).toString();
+//		logger.log(Level.INFO, "server-name="+req.getServerName());
+//		logger.log(Level.INFO, "redir url="+result);
+		return "http://oauthuserinfo.appspot.com/oauthUserInfo";
 	}
 	
 	private static String getClientId() {

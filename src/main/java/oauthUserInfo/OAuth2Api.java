@@ -50,6 +50,8 @@ public class OAuth2Api extends DefaultApi20 {
             
             public Token extract(String response) {
             	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
+            	
+            	System.out.println(response);
             	try {
             		JSONObject json = new JSONObject(response);
             		if (json.has(ACCESS_TOKEN_TAG)) {
