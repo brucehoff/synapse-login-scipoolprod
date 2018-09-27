@@ -1,8 +1,10 @@
-
-
+This app shows what is returned by the Google Identity API:
 ```
-export OAUTH_CLIENT_ID=...
-export OAUTH_CLIENT_SECRET=...
-docker build -t oauth-user-info --build-arg OAUTH_CLIENT_ID=foo --build-arg OAUTH_CLIENT_SECRET=bar .
-docker run --rm -p 8080:8080 --name oauth-user-info oauth-user-info
+https://www.googleapis.com/oauth2/v2/userinfo
 ```
+
+It is configured to be run as a Google AppEngine application.  To deploy:
+- create an OAuth client
+- enter the client ID and secret in `src/main/resources/global.properties`
+- customize Auth.getRedirectBackUrl() as needed
+- run `mvn appengine:deploy`

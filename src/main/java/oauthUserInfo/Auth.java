@@ -4,7 +4,6 @@ package oauthUserInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,12 +29,6 @@ public class Auth extends HttpServlet {
     private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
 
 	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
-
-	public static final String EMAIL = "email";
-	public static final String VERIFIED_EMAIL = "verified_email";
-	public static final String ID = "id";
-	public static final String GIVEN_NAME = "given_name";
-	public static final String FAMILY_NAME = "family_name";
 	
 	private static final String SCOPE_EMAIL = "email";
 
@@ -49,25 +42,23 @@ public class Auth extends HttpServlet {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	private static final String URI_ROOT = ""; // was /oauthUserInfo-1.0
-	
+
 	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
 //		String result = (new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo")).toString();
-//		logger.log(Level.INFO, "server-name="+req.getServerName());
-//		logger.log(Level.INFO, "redir url="+result);
+//		logger.log(Level.WARNING, "server-name="+req.getServerName());
+//		logger.log(Level.WARNING, "redir url="+result);
 		return "http://oauthuserinfo.appspot.com/oauthUserInfo";
 	}
 	
 	private static String getClientId() {
 		String result = getProperty("OAUTH_CLIENT_ID");
-		logger.log(Level.INFO, "OAUTH_CLIENT_ID="+result);
+		logger.log(Level.WARNING, "OAUTH_CLIENT_ID="+result);
 		return result;
 	}
 	
 	private static String getClientSecret() {
 		String result =  getProperty("OAUTH_CLIENT_SECRET");
-		logger.log(Level.INFO, "OAUTH_CLIENT_SECRET="+result);
+		logger.log(Level.WARNING, "OAUTH_CLIENT_SECRET="+result);
 		return result;
 	}
 	
@@ -106,8 +97,11 @@ public class Auth extends HttpServlet {
 			throw new Exception("Response code: "+response.getCode()+"Message: "+response.getMessage());
 		}
 		
+		String responseBody = response.getBody();
+		
+		logger.log(Level.WARNING, responseBody);
 		resp.setContentType("text/plain");
-		resp.getOutputStream().println(response.getBody());
+		resp.getOutputStream().println(responseBody);
 		resp.setStatus(200);
 	}
 	
