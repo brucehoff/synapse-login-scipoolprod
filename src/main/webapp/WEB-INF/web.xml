@@ -12,5 +12,13 @@
 		<url-pattern>/oauthUserInfo</url-pattern>
 	</servlet-mapping>
 
+	<servlet>
+		<servlet-name>forbidden</servlet-name>
+		<servlet-class>oauthUserInfo.Forbidden</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>forbidden</servlet-name>
+		<url-pattern>/forbidden</url-pattern>
+	</servlet-mapping>
 
 </web-app>
