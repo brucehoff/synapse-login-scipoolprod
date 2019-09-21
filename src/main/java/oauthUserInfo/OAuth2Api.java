@@ -1,6 +1,7 @@
 package oauthUserInfo;
 
 
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.scribe.builder.api.DefaultApi20;
@@ -17,6 +18,8 @@ import org.scribe.oauth.OAuth20ServiceImpl;
 import org.scribe.oauth.OAuthService;
 import org.scribe.utils.OAuthEncoder;
 import org.scribe.utils.Preconditions;
+
+
 
 /**
  * Google OAuth2.0 
@@ -109,8 +112,11 @@ public class OAuth2Api extends DefaultApi20 {
         @Override
         public Token getAccessToken(Token requestToken, Verifier verifier) {
             OAuthRequest request = new OAuthRequest(api.getAccessTokenVerb(), api.getAccessTokenEndpoint());
+           	String s = config.getApiKey()+":"+config.getApiSecret();
+           	String h = "Basic "+Base64.encodeBase64String(s.getBytes());
             switch (api.getAccessTokenVerb()) {
             case POST:
+            	request.addHeader("Authorization", h);
                 request.addBodyParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addBodyParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addBodyParameter(OAuthConstants.CODE, verifier.getValue());
@@ -119,6 +125,7 @@ public class OAuth2Api extends DefaultApi20 {
                 break;
             case GET:
             default:
+            	request.addHeader("Authorization", h);
                 request.addQuerystringParameter(OAuthConstants.CLIENT_ID, config.getApiKey());
                 request.addQuerystringParameter(OAuthConstants.CLIENT_SECRET, config.getApiSecret());
                 request.addQuerystringParameter(OAuthConstants.CODE, verifier.getValue());

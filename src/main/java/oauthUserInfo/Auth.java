@@ -3,11 +3,13 @@ package oauthUserInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -25,10 +27,20 @@ import org.scribe.oauth.OAuthService;
 public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
 
-    private static final String AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
-    private static final String TOKEN_URL = "https://accounts.google.com/o/oauth2/token";
+    private static final String AUTHORIZE_URL_SYNAPSE = 
+    		"https://staging-signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
+    "claims={\"id_token\":{\"team\":{\"values\":[\"3329051\"]},\"family_name\":{\"essential\":true},\"given_name\":{\"essential\":true},\"email\":{\"essential\":true},\"company\":{\"essential\":false}},\"userinfo\":{\"team\":{\"values\":[\"3329051\"]},\"family_name\":{\"essential\":true},\"given_name\":{\"essential\":true},\"email\":{\"essential\":true},\"company\":{\"essential\":false}}}";
+    private static final String TOKEN_URL_SYNAPSE = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/token";
 
+    private static final String AUTHORIZE_URL_GOOGLE = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
+    private static final String TOKEN_URL_GOOGLE = "https://accounts.google.com/o/oauth2/token";
+
+	private static final String AUTHORIZE_URL_ORCID = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
+	private static final String TOKEN_URL_ORCID = "https://pub.orcid.org/oauth/token";
+
+	private static final String SYNAPSE_OAUTH_USER_INFO_API_URL = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/userinfo";
 	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+	private static final String ORCID_OAUTH_USER_INFO_API_URL = "https://orcid.org/oauth/userinfo";
 	
 	private static final String SCOPE_EMAIL = "email";
 
@@ -39,36 +51,91 @@ public class Auth extends HttpServlet {
 			doPostIntern(req, resp);
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "", e);
-			throw new RuntimeException(e);
+			resp.setContentType("text/plain");
+			try (ServletOutputStream os=resp.getOutputStream()) {
+				os.println("Error:");
+				e.printStackTrace(new PrintStream(os));
+			}
+			resp.setStatus(500);
 		}
 	}
 
-	private String getRedirectBackUrl(HttpServletRequest req) throws MalformedURLException {
-//		String result = (new URL(req.getScheme(), req.getServerName(), req.getServerPort(), URI_ROOT+"/oauthUserInfo")).toString();
-//		logger.log(Level.WARNING, "server-name="+req.getServerName());
-//		logger.log(Level.WARNING, "redir url="+result);
-		return "http://oauthuserinfo.appspot.com/oauthUserInfo";
+	private static final String CLIENT_ENDPOINT = "http://oauthuserinfo.appspot.com/";
+	private static final String SYNAPSE_BUTTON_URI = "oauthUserInfoSynapse";
+	private static final String GOOGLE_BUTTON_URI = "oauthUserInfoGoogle";
+	private static final String ORCID_BUTTON_URI = "oauthUserInfoOrcid";
+	
+	private String getRedirectBackUrlGoogle(HttpServletRequest req) throws MalformedURLException {
+		return CLIENT_ENDPOINT+GOOGLE_BUTTON_URI;
 	}
 	
-	private static String getClientId() {
-		String result = getProperty("OAUTH_CLIENT_ID");
-		logger.log(Level.WARNING, "OAUTH_CLIENT_ID="+result);
+	private String getRedirectBackUrlSynapse(HttpServletRequest req) throws MalformedURLException {
+		return CLIENT_ENDPOINT+SYNAPSE_BUTTON_URI;
+	}
+	
+	private String getRedirectBackUrlOrcid(HttpServletRequest req) throws MalformedURLException {
+		return CLIENT_ENDPOINT+ORCID_BUTTON_URI;
+	}
+	
+	private static String getClientIdSynapse() {
+		String result = getProperty("SYNAPSE_OAUTH_CLIENT_ID");
+		logger.log(Level.WARNING, "SYNAPSE_OAUTH_CLIENT_ID="+result);
 		return result;
 	}
 	
-	private static String getClientSecret() {
-		String result =  getProperty("OAUTH_CLIENT_SECRET");
-		logger.log(Level.WARNING, "OAUTH_CLIENT_SECRET="+result);
+	private static String getClientSecretSynapse() {
+		String result =  getProperty("SYNAPSE_OAUTH_CLIENT_SECRET");
+		logger.log(Level.WARNING, "SYNAPSE_OAUTH_CLIENT_SECRET="+result);
+		return result;
+	}
+	
+	private static String getClientIdGoogle() {
+		String result = getProperty("GOOGLE_OAUTH_CLIENT_ID");
+		logger.log(Level.WARNING, "GOOGLE_OAUTH_CLIENT_ID="+result);
+		return result;
+	}
+	
+	private static String getClientSecretGoogle() {
+		String result =  getProperty("GOOGLE_OAUTH_CLIENT_SECRET");
+		logger.log(Level.WARNING, "GOOGLE_OAUTH_CLIENT_SECRET="+result);
+		return result;
+	}
+	
+	private static String getClientIdOrcid() {
+		String result = getProperty("ORCID_OAUTH_CLIENT_ID");
+		logger.log(Level.WARNING, "ORCID_OAUTH_CLIENT_ID="+result);
+		return result;
+	}
+	
+	private static String getClientSecretOrcid() {
+		String result =  getProperty("ORCID_OAUTH_CLIENT_SECRET");
+		logger.log(Level.WARNING, "ORCID_OAUTH_CLIENT_SECRET="+result);
 		return result;
 	}
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-				String redirectBackUrl = getRedirectBackUrl(req);
-				String redirectUrl = new OAuth2Api(AUTHORIZE_URL, TOKEN_URL).
-						getAuthorizationUrl(new OAuthConfig(getClientId(), null, redirectBackUrl, null, SCOPE_EMAIL, null));
-				resp.setHeader("Location", redirectUrl);
-				resp.setStatus(307);
+		if (req.getRequestURI().contains(GOOGLE_BUTTON_URI)) {
+			String redirectBackUrl = getRedirectBackUrlGoogle(req);
+			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_GOOGLE, TOKEN_URL_GOOGLE).
+					getAuthorizationUrl(new OAuthConfig(getClientIdGoogle(), null, redirectBackUrl, null, SCOPE_EMAIL, null));
+			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
+			resp.setStatus(307);
+		} else if (req.getRequestURI().contains(ORCID_BUTTON_URI)) {
+			String redirectBackUrl = getRedirectBackUrlOrcid(req);
+			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_ORCID, TOKEN_URL_ORCID).
+					getAuthorizationUrl(new OAuthConfig(getClientIdOrcid(), null, redirectBackUrl, null, "openid", null));
+			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
+			resp.setStatus(303);
+		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
+			String redirectBackUrl = getRedirectBackUrlSynapse(req);
+			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
+					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
+			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
+			resp.setStatus(303);
+		} else {
+			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
+		}
 	}
 
 	@Override
@@ -78,30 +145,69 @@ public class Auth extends HttpServlet {
 			doGetIntern(req, resp);
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "", e);
-			throw new RuntimeException(e);
+			resp.setContentType("text/plain");
+			try (ServletOutputStream os=resp.getOutputStream()) {
+				os.println("Error:");
+				e.printStackTrace(new PrintStream(os));
+			}
+			resp.setStatus(500);
 		}
 	}
 		
 	private void doGetIntern(HttpServletRequest req, HttpServletResponse resp)
 				throws Exception {
 		
-		OAuthService service = (new OAuth2Api(AUTHORIZE_URL, TOKEN_URL)).
-				createService(new OAuthConfig(getClientId(), getClientSecret(), getRedirectBackUrl(req), null, null, null));
-		String authorizationCode = req.getParameter("code");
-		Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-		// Use the access token to get the UserInfo from Google.
-		OAuthRequest request = new OAuthRequest(Verb.GET, GOOGLE_OAUTH_USER_INFO_API_URL);
-		service.signRequest(accessToken, request);
-		Response response = request.send();
-		if(!response.isSuccessful()){
-			throw new Exception("Response code: "+response.getCode()+"Message: "+response.getMessage());
+		OAuthService service = null;
+		OAuthRequest request = null;
+		String result = null;
+		if (req.getRequestURI().contains(GOOGLE_BUTTON_URI)) {
+			service = (new OAuth2Api(AUTHORIZE_URL_GOOGLE, TOKEN_URL_GOOGLE)).
+					createService(new OAuthConfig(getClientIdGoogle(), getClientSecretGoogle(), getRedirectBackUrlGoogle(req), null, null, null));
+			request = new OAuthRequest(Verb.GET, GOOGLE_OAUTH_USER_INFO_API_URL);
+			String authorizationCode = req.getParameter("code");
+			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
+			// Use the access token to get the UserInfo from Google.
+			service.signRequest(accessToken, request);
+			Response response = request.send();
+			if(!response.isSuccessful()){
+				throw new Exception("Response code: "+response.getCode()+" Message: "+response.getMessage());
+			}
+			
+			result = response.getBody();
+		} else if (req.getRequestURI().contains(ORCID_BUTTON_URI)) {
+			service = (new OAuth2Api(AUTHORIZE_URL_ORCID, TOKEN_URL_ORCID)).
+					createService(new OAuthConfig(getClientIdOrcid(), getClientSecretOrcid(), getRedirectBackUrlOrcid(req), null, null, null));
+			request = new OAuthRequest(Verb.GET, ORCID_OAUTH_USER_INFO_API_URL);
+			String authorizationCode = req.getParameter("code");
+			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
+			result = accessToken.getRawResponse();
+		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
+			service = (new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE)).
+					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapse(req), null, null, null));
+			String authorizationCode = req.getParameter("code");
+			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
+			result = accessToken.getRawResponse();
+			request = new OAuthRequest(Verb.GET, SYNAPSE_OAUTH_USER_INFO_API_URL);
+			request.addHeader("Authorization", "Bearer "+accessToken.getToken());
+			Response response = request.send();
+			if(!response.isSuccessful()){
+				throw new Exception("Response code: "+response.getCode()+" Message: "+response.getMessage());
+			}
+			result = response.getBody();
+		} else {
+			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 		}
 		
-		String responseBody = response.getBody();
-		
-		logger.log(Level.WARNING, responseBody);
+		logger.log(Level.WARNING, result);
 		resp.setContentType("text/plain");
-		resp.getOutputStream().println(responseBody);
+		try (ServletOutputStream os=resp.getOutputStream()) {
+//			os.println("redirect URL:");
+//			os.println(req.getRequestURL().toString());
+//			os.println("redirect request param's:");
+//			os.println(req.getQueryString());
+//			os.println("\nResponse Body:\n");
+			os.println(result);
+		}
 		resp.setStatus(200);
 	}
 	

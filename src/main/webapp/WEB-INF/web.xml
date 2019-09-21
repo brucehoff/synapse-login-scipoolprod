@@ -9,7 +9,15 @@
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>oauthUserInfo</servlet-name>
-		<url-pattern>/oauthUserInfo</url-pattern>
+		<url-pattern>/oauthUserInfoGoogle</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>oauthUserInfo</servlet-name>
+		<url-pattern>/oauthUserInfoOrcid</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>oauthUserInfo</servlet-name>
+		<url-pattern>/oauthUserInfoSynapse</url-pattern>
 	</servlet-mapping>
 
 	<servlet>

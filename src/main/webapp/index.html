@@ -3,14 +3,25 @@
 <meta name="google-site-verification" content="gzlCkI9yacMLGn8jwDXybgZpOSpBdH8O3lOjVmcI0gg" />
 </head>
 <body>
-Click the button below to log in via Google SSO:
-<form action="/oauthUserInfo" method="post">
+
+Click the button below to log in via Synapse:
+<form action="/oauthUserInfoSynapse" method="post">
 <input type="submit" value="Click here!" />
 </form>
 <br/>
+
+<!--
+Click the button below to log in via Google SSO:
+<form action="/oauthUserInfoGoogle" method="post">
+<input type="submit" value="Click here!" />
+</form>
 <br/>
 
-<a href="/forbidden" download>Click here to get a '403 Forbidden' response.</a>
-
+Click the button below to log in via ORCID SSO:
+<form action="/oauthUserInfoOrcid" method="post">
+<input type="submit" value="Click here!" />
+</form>
+<br/>
+-->
 </body>
 </html>
