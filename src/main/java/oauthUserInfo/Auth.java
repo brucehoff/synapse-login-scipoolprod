@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONObject;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthRequest;
 import org.scribe.model.Response;
@@ -27,9 +28,26 @@ import org.scribe.oauth.OAuthService;
 public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
 
+	private static final String CLAIMS = "{\"team\":{\"values\":[\"3329051\"]},"
+			+ "\"family_name\":{\"essential\":true},"
+			+ "\"given_name\":{\"essential\":true},"
+			+ "\"email\":{\"essential\":true},"
+			+ "\"email_verified\":{\"essential\":true},"
+			+ "\"userid\":{\"essential\":true},"
+			+ "\"orcid\":{\"essential\":true},"
+			+ "\"is_certified\":{\"essential\":true},"
+			+ "\"is_validated\":{\"essential\":true},"
+			+ "\"validated_given_name\":{\"essential\":true},"
+			+ "\"validated_family_name\":{\"essential\":true},"
+			+ "\"validated_location\":{\"essential\":true},"
+			+ "\"validated_email\":{\"essential\":true},"
+			+ "\"validated_company\":{\"essential\":true},"
+			+ "\"validated_at\":{\"essential\":true},"
+			+ "\"validated_orcid\":{\"essential\":true},"
+			+ "\"company\":{\"essential\":false}}";
     private static final String AUTHORIZE_URL_SYNAPSE = 
     		"https://staging-signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
-    "claims={\"id_token\":{\"team\":{\"values\":[\"3329051\"]},\"family_name\":{\"essential\":true},\"given_name\":{\"essential\":true},\"email\":{\"essential\":true},\"company\":{\"essential\":false}},\"userinfo\":{\"team\":{\"values\":[\"3329051\"]},\"family_name\":{\"essential\":true},\"given_name\":{\"essential\":true},\"email\":{\"essential\":true},\"company\":{\"essential\":false}}}";
+    		"claims={\"id_token\":"+CLAIMS+",\"userinfo\":"+CLAIMS+"}";
     private static final String TOKEN_URL_SYNAPSE = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/token";
 
     private static final String AUTHORIZE_URL_GOOGLE = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
@@ -186,7 +204,6 @@ public class Auth extends HttpServlet {
 					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapse(req), null, null, null));
 			String authorizationCode = req.getParameter("code");
 			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			result = accessToken.getRawResponse();
 			request = new OAuthRequest(Verb.GET, SYNAPSE_OAUTH_USER_INFO_API_URL);
 			request.addHeader("Authorization", "Bearer "+accessToken.getToken());
 			Response response = request.send();
@@ -198,6 +215,7 @@ public class Auth extends HttpServlet {
 			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 		}
 		
+		JSONObject json = new JSONObject(result);
 		logger.log(Level.WARNING, result);
 		resp.setContentType("text/plain");
 		try (ServletOutputStream os=resp.getOutputStream()) {
@@ -206,7 +224,10 @@ public class Auth extends HttpServlet {
 //			os.println("redirect request param's:");
 //			os.println(req.getQueryString());
 //			os.println("\nResponse Body:\n");
-			os.println(result);
+			
+			for (String key: json.keySet()) {
+				os.println(key+" "+json.get(key));
+			}
 		}
 		resp.setStatus(200);
 	}
