@@ -46,9 +46,9 @@ public class Auth extends HttpServlet {
 			+ "\"validated_orcid\":{\"essential\":true},"
 			+ "\"company\":{\"essential\":false}}";
     private static final String AUTHORIZE_URL_SYNAPSE = 
-    		"https://staging-signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
+    		"https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
     		"claims={\"id_token\":"+CLAIMS+",\"userinfo\":"+CLAIMS+"}";
-    private static final String TOKEN_URL_SYNAPSE = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/token";
+    private static final String TOKEN_URL_SYNAPSE = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 
     private static final String AUTHORIZE_URL_GOOGLE = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
     private static final String TOKEN_URL_GOOGLE = "https://accounts.google.com/o/oauth2/token";
@@ -56,7 +56,7 @@ public class Auth extends HttpServlet {
 	private static final String AUTHORIZE_URL_ORCID = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
 	private static final String TOKEN_URL_ORCID = "https://pub.orcid.org/oauth/token";
 
-	private static final String SYNAPSE_OAUTH_USER_INFO_API_URL = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/userinfo";
+	private static final String SYNAPSE_OAUTH_USER_INFO_API_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/userinfo";
 	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 	private static final String ORCID_OAUTH_USER_INFO_API_URL = "https://orcid.org/oauth/userinfo";
 	
