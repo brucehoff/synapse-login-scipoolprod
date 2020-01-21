@@ -32,6 +32,7 @@ import org.scribe.utils.Preconditions;
  */
 public class OAuth2Api extends DefaultApi20 {
 	private static String ACCESS_TOKEN_TAG = "access_token";
+	private static String ID_TOKEN_TAG = "id_token";
 	private static String ERROR_TAG = "error";
 	
 	private String authorizationEndpoint;
@@ -53,12 +54,32 @@ public class OAuth2Api extends DefaultApi20 {
             
             public Token extract(String response) {
             	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
-            	
-            	System.out.println(response);
             	try {
             		JSONObject json = new JSONObject(response);
             		if (json.has(ACCESS_TOKEN_TAG)) {
             			String token = OAuthEncoder.decode(json.getString(ACCESS_TOKEN_TAG));
+            			return new Token(token, "", response);
+            		} else if (json.has(ERROR_TAG)) {
+            			throw new OAuthException(json.getString(ERROR_TAG));
+            		} else {
+            			throw new OAuthException("Response body is incorrect. Can't parse: '" + response + "'", null);
+            		}
+            	} catch (JSONException e) {
+            		throw new RuntimeException(e);
+            	}
+            }
+        };
+    }
+
+    public AccessTokenExtractor getIdTokenExtractor() {
+        return new AccessTokenExtractor() {
+            
+            public Token extract(String response) {
+            	Preconditions.checkEmptyString(response, "Response body is incorrect. Can't extract a token from an empty string");
+            	try {
+            		JSONObject json = new JSONObject(response);
+            		if (json.has(ID_TOKEN_TAG)) {
+            			String token = OAuthEncoder.decode(json.getString(ID_TOKEN_TAG));
             			return new Token(token, "", response);
             		} else if (json.has(ERROR_TAG)) {
             			throw new OAuthException(json.getString(ERROR_TAG));
@@ -96,7 +117,7 @@ public class OAuth2Api extends DefaultApi20 {
         return new BasicOAuth2Service(this, config);
     }
     
-    private class BasicOAuth2Service extends OAuth20ServiceImpl {
+    public class BasicOAuth2Service extends OAuth20ServiceImpl {
 
         private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
         private static final String GRANT_TYPE = "grant_type";
@@ -109,8 +130,7 @@ public class OAuth2Api extends DefaultApi20 {
             this.config = config;
         }
         
-        @Override
-        public Token getAccessToken(Token requestToken, Verifier verifier) {
+        private Response foo(Token requestToken, Verifier verifier) {
             OAuthRequest request = new OAuthRequest(api.getAccessTokenVerb(), api.getAccessTokenEndpoint());
            	String s = config.getApiKey()+":"+config.getApiSecret();
            	String h = "Basic "+Base64.encodeBase64String(s.getBytes());
@@ -132,9 +152,20 @@ public class OAuth2Api extends DefaultApi20 {
                 if (config.getCallback()!=null) request.addQuerystringParameter(OAuthConstants.REDIRECT_URI, config.getCallback());
                 if(config.hasScope()) request.addQuerystringParameter(OAuthConstants.SCOPE, config.getScope());
             }
-            Response response = request.send();
+            return request.send();
+        }
+        
+        @Override
+        public Token getAccessToken(Token requestToken, Verifier verifier) {
+        	Response response = foo(requestToken, verifier);
             return api.getAccessTokenExtractor().extract(response.getBody());
         }
+        
+
+	    public Token getIdToken(Token requestToken, Verifier verifier) {
+        	Response response = foo(requestToken, verifier);
+	        return ((OAuth2Api)api).getIdTokenExtractor().extract(response.getBody());
+	    }
     }
 
 }

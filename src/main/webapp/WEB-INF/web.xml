@@ -19,6 +19,10 @@
 		<servlet-name>oauthUserInfo</servlet-name>
 		<url-pattern>/oauthUserInfoSynapse</url-pattern>
 	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>oauthUserInfo</servlet-name>
+		<url-pattern>/oauthUserInfoSynapseStaging</url-pattern>
+	</servlet-mapping>
 
 	<servlet>
 		<servlet-name>forbidden</servlet-name>
