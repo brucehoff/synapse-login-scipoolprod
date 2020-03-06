@@ -130,7 +130,7 @@ public class OAuth2Api extends DefaultApi20 {
             this.config = config;
         }
         
-        private Response foo(Token requestToken, Verifier verifier) {
+        private Response getTokenResponse(Token requestToken, Verifier verifier) {
             OAuthRequest request = new OAuthRequest(api.getAccessTokenVerb(), api.getAccessTokenEndpoint());
            	String s = config.getApiKey()+":"+config.getApiSecret();
            	String h = "Basic "+Base64.encodeBase64String(s.getBytes());
@@ -157,13 +157,13 @@ public class OAuth2Api extends DefaultApi20 {
         
         @Override
         public Token getAccessToken(Token requestToken, Verifier verifier) {
-        	Response response = foo(requestToken, verifier);
+        	Response response = getTokenResponse(requestToken, verifier);
             return api.getAccessTokenExtractor().extract(response.getBody());
         }
         
 
 	    public Token getIdToken(Token requestToken, Verifier verifier) {
-        	Response response = foo(requestToken, verifier);
+        	Response response = getTokenResponse(requestToken, verifier);
 	        return ((OAuth2Api)api).getIdTokenExtractor().extract(response.getBody());
 	    }
     }

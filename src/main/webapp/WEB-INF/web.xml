@@ -4,33 +4,12 @@
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 
 	<servlet>
-		<servlet-name>oauthUserInfo</servlet-name>
-		<servlet-class>oauthUserInfo.Auth</servlet-class>
+		<servlet-name>synapseAwsConsoleLogin</servlet-name>
+		<servlet-class>synapseawsconsolelogin.Auth</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>oauthUserInfo</servlet-name>
-		<url-pattern>/oauthUserInfoGoogle</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>oauthUserInfo</servlet-name>
-		<url-pattern>/oauthUserInfoOrcid</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>oauthUserInfo</servlet-name>
-		<url-pattern>/oauthUserInfoSynapse</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>oauthUserInfo</servlet-name>
-		<url-pattern>/oauthUserInfoSynapseStaging</url-pattern>
-	</servlet-mapping>
-
-	<servlet>
-		<servlet-name>forbidden</servlet-name>
-		<servlet-class>oauthUserInfo.Forbidden</servlet-class>
-	</servlet>
-	<servlet-mapping>
-		<servlet-name>forbidden</servlet-name>
-		<url-pattern>/forbidden</url-pattern>
+		<servlet-name>synapseAwsConsoleLogin</servlet-name>
+		<url-pattern>/synapse</url-pattern>
 	</servlet-mapping>
 
 </web-app>

@@ -75,6 +75,7 @@ public class Auth extends HttpServlet {
 		}
 	}
 
+	// TODO should be able to extract the following as the host component of the incoming HTTP Request
 	private static final String CLIENT_ENDPOINT = "http://synapseawsconsolelogin.appspot.com/";
 	private static final String SYNAPSE_BUTTON_URI = "synapse";
 	
@@ -102,7 +103,7 @@ public class Auth extends HttpServlet {
 			String redirectBackUrl = getRedirectBackUrlSynapse(req);
 			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
 					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
-			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
+			resp.setHeader("Location", redirectUrl);
 			resp.setStatus(303);
 		} else {
 			throw new RuntimeException("Unexpected URI "+req.getRequestURI());

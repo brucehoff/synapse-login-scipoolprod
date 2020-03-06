@@ -115,7 +115,7 @@
                prefix="localhost_access_log" suffix=".txt"
                pattern="%h %l %u %t &quot;%r&quot; %s %b" />
 
-    	<Context path="" docBase="oauthUserInfo-1.0.war" debug="0" reloadable="true"></Context>
+    	<Context path="" docBase="SynapseAWSConsoleLogin-1.0.war" debug="0" reloadable="true"></Context>
       </Host>
     </Engine>
     
