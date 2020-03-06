@@ -1,4 +1,4 @@
-package oauthUserInfo;
+package synapseawsconsolelogin;
 
 
 import org.apache.commons.codec.binary.Base64;

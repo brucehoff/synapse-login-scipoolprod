@@ -1,5 +1,5 @@
 
-package oauthUserInfo;
+package synapseawsconsolelogin;
 
 
 import java.io.BufferedReader;
@@ -24,10 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.scribe.model.OAuthConfig;
-import org.scribe.model.OAuthRequest;
-import org.scribe.model.Response;
 import org.scribe.model.Token;
-import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 
 import com.amazonaws.auth.AWSCredentials;
@@ -50,47 +47,17 @@ public class Auth extends HttpServlet {
 
 	private static final String REQUIRED_SYNAPSE_TEAM_ID = "273957";
 	private static final String CLAIMS = "{\"team\":{\"values\":[\""+REQUIRED_SYNAPSE_TEAM_ID+"\"]},"
+			+ "\"user_name\":{\"essential\":true}"
+			+ "\"family_name\":{\"essential\":true},"
+			+ "\"given_name\":{\"essential\":true},"
+			+ "\"email\":{\"essential\":true},"
 			+ "\"userid\":{\"essential\":true}}";
-	
-//	private static final String CLAIMS = "{\"team\":{\"values\":[\"3329051\"]},"
-//			+ "\"family_name\":{\"essential\":true},"
-//			+ "\"given_name\":{\"essential\":true},"
-//			+ "\"email\":{\"essential\":true},"
-//			+ "\"email_verified\":{\"essential\":true},"
-//			+ "\"userid\":{\"essential\":true},"
-//			+ "\"orcid\":{\"essential\":true},"
-//			+ "\"is_certified\":{\"essential\":true},"
-//			+ "\"is_validated\":{\"essential\":true},"
-//			+ "\"validated_given_name\":{\"essential\":true},"
-//			+ "\"validated_family_name\":{\"essential\":true},"
-//			+ "\"validated_location\":{\"essential\":true},"
-//			+ "\"validated_email\":{\"essential\":true},"
-//			+ "\"validated_company\":{\"essential\":true},"
-//			+ "\"validated_at\":{\"essential\":true},"
-//			+ "\"validated_orcid\":{\"essential\":true},"
-//			+ "\"company\":{\"essential\":false}}";
 	
     private static final String AUTHORIZE_URL_SYNAPSE = 
     		"https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
     		"claims={\"id_token\":"+CLAIMS+",\"userinfo\":"+CLAIMS+"}";
-    private static final String AUTHORIZE_URL_SYNAPSE_STAGING = 
-    		"https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
-    		"claims={\"id_token\":"+CLAIMS+",\"userinfo\":"+CLAIMS+"}";
+
     private static final String TOKEN_URL_SYNAPSE = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
-    private static final String TOKEN_URL_SYNAPSE_STAGING = "https://repo-staging.prod.sagebase.org/auth/v1/oauth2/token";
-
-    private static final String AUTHORIZE_URL_GOOGLE = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=%s&redirect_uri=%s";
-    private static final String TOKEN_URL_GOOGLE = "https://accounts.google.com/o/oauth2/token";
-
-	private static final String AUTHORIZE_URL_ORCID = "https://orcid.org/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s";
-	private static final String TOKEN_URL_ORCID = "https://pub.orcid.org/oauth/token";
-
-	private static final String SYNAPSE_OAUTH_USER_INFO_API_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/userinfo";
-	private static final String SYNAPSE_STAGING_OAUTH_USER_INFO_API_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/userinfo";
-	private static final String GOOGLE_OAUTH_USER_INFO_API_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
-	private static final String ORCID_OAUTH_USER_INFO_API_URL = "https://orcid.org/oauth/userinfo";
-	
-	private static final String SCOPE_EMAIL = "email";
 
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -108,29 +75,13 @@ public class Auth extends HttpServlet {
 		}
 	}
 
-	private static final String CLIENT_ENDPOINT = "http://oauthuserinfo.appspot.com/";
-	private static final String SYNAPSE_BUTTON_URI = "oauthUserInfoSynapse";
-	private static final String SYNAPSE_BUTTON_STAGING_URI = "oauthUserInfoSynapseStaging";
-	
-	private static final String GOOGLE_BUTTON_URI = "oauthUserInfoGoogle";
-	private static final String ORCID_BUTTON_URI = "oauthUserInfoOrcid";
-	
-	private String getRedirectBackUrlGoogle(HttpServletRequest req) throws MalformedURLException {
-		return CLIENT_ENDPOINT+GOOGLE_BUTTON_URI;
-	}
+	private static final String CLIENT_ENDPOINT = "http://synapseawsconsolelogin.appspot.com/";
+	private static final String SYNAPSE_BUTTON_URI = "synapse";
 	
 	private String getRedirectBackUrlSynapse(HttpServletRequest req) throws MalformedURLException {
 		return CLIENT_ENDPOINT+SYNAPSE_BUTTON_URI;
 	}
-	
-	private String getRedirectBackUrlSynapseStaging(HttpServletRequest req) throws MalformedURLException {
-		return CLIENT_ENDPOINT+SYNAPSE_BUTTON_STAGING_URI;
-	}
-	
-	private String getRedirectBackUrlOrcid(HttpServletRequest req) throws MalformedURLException {
-		return CLIENT_ENDPOINT+ORCID_BUTTON_URI;
-	}
-	
+		
 	private static String getClientIdSynapse() {
 		String result = getProperty("SYNAPSE_OAUTH_CLIENT_ID");
 		logger.log(Level.WARNING, "SYNAPSE_OAUTH_CLIENT_ID="+result);
@@ -143,53 +94,13 @@ public class Auth extends HttpServlet {
 		return result;
 	}
 	
-	private static String getClientIdGoogle() {
-		String result = getProperty("GOOGLE_OAUTH_CLIENT_ID");
-		logger.log(Level.WARNING, "GOOGLE_OAUTH_CLIENT_ID="+result);
-		return result;
-	}
-	
-	private static String getClientSecretGoogle() {
-		String result =  getProperty("GOOGLE_OAUTH_CLIENT_SECRET");
-		logger.log(Level.WARNING, "GOOGLE_OAUTH_CLIENT_SECRET="+result);
-		return result;
-	}
-	
-	private static String getClientIdOrcid() {
-		String result = getProperty("ORCID_OAUTH_CLIENT_ID");
-		logger.log(Level.WARNING, "ORCID_OAUTH_CLIENT_ID="+result);
-		return result;
-	}
-	
-	private static String getClientSecretOrcid() {
-		String result =  getProperty("ORCID_OAUTH_CLIENT_SECRET");
-		logger.log(Level.WARNING, "ORCID_OAUTH_CLIENT_SECRET="+result);
-		return result;
-	}
+
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		if (req.getRequestURI().contains(GOOGLE_BUTTON_URI)) {
-			String redirectBackUrl = getRedirectBackUrlGoogle(req);
-			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_GOOGLE, TOKEN_URL_GOOGLE).
-					getAuthorizationUrl(new OAuthConfig(getClientIdGoogle(), null, redirectBackUrl, null, SCOPE_EMAIL, null));
-			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
-			resp.setStatus(307);
-		} else if (req.getRequestURI().contains(ORCID_BUTTON_URI)) {
-			String redirectBackUrl = getRedirectBackUrlOrcid(req);
-			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_ORCID, TOKEN_URL_ORCID).
-					getAuthorizationUrl(new OAuthConfig(getClientIdOrcid(), null, redirectBackUrl, null, "openid", null));
-			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
-			resp.setStatus(303);
-		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
+		if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
 			String redirectBackUrl = getRedirectBackUrlSynapse(req);
 			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
-					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
-			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
-			resp.setStatus(303);
-		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_STAGING_URI)) {
-			String redirectBackUrl = getRedirectBackUrlSynapseStaging(req);
-			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE_STAGING).
 					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
 			resp.setHeader("Location", redirectUrl+"&state=someRandomStateToPassThrough");
 			resp.setStatus(303);
@@ -283,30 +194,7 @@ public class Auth extends HttpServlet {
 				throws Exception {
 		
 		OAuth2Api.BasicOAuth2Service service = null;
-		OAuthRequest request = null;
-		String result = null;
-		if (req.getRequestURI().contains(GOOGLE_BUTTON_URI)) {
-			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_GOOGLE, TOKEN_URL_GOOGLE)).
-					createService(new OAuthConfig(getClientIdGoogle(), getClientSecretGoogle(), getRedirectBackUrlGoogle(req), null, null, null));
-			request = new OAuthRequest(Verb.GET, GOOGLE_OAUTH_USER_INFO_API_URL);
-			String authorizationCode = req.getParameter("code");
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			// Use the access token to get the UserInfo from Google.
-			service.signRequest(accessToken, request);
-			Response response = request.send();
-			if(!response.isSuccessful()){
-				throw new Exception("Response code: "+response.getCode()+" Message: "+response.getMessage());
-			}
-			
-			result = response.getBody();
-		} else if (req.getRequestURI().contains(ORCID_BUTTON_URI)) {
-			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_ORCID, TOKEN_URL_ORCID)).
-					createService(new OAuthConfig(getClientIdOrcid(), getClientSecretOrcid(), getRedirectBackUrlOrcid(req), null, null, null));
-			request = new OAuthRequest(Verb.GET, ORCID_OAUTH_USER_INFO_API_URL);
-			String authorizationCode = req.getParameter("code");
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			result = accessToken.getRawResponse();
-		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
+		if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
 			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE)).
 					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapse(req), null, null, null));
 			String authorizationCode = req.getParameter("code");
@@ -358,32 +246,9 @@ public class Auth extends HttpServlet {
 				}
 				resp.setStatus(200);
 			}
-			return;
-		} else if (req.getRequestURI().contains(SYNAPSE_BUTTON_STAGING_URI)) {
-			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE_STAGING)).
-					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapseStaging(req), null, null, null));
-			String authorizationCode = req.getParameter("code");
-			Token accessToken = service.getAccessToken(null, new Verifier(authorizationCode));
-			request = new OAuthRequest(Verb.GET, SYNAPSE_STAGING_OAUTH_USER_INFO_API_URL);
-			request.addHeader("Authorization", "Bearer "+accessToken.getToken());
-			Response response = request.send();
-			if(!response.isSuccessful()){
-				throw new Exception("Response code: "+response.getCode()+" Message: "+response.getMessage());
-			}
-			result = response.getBody();
 		} else {
 			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 		}
-		// we don't reach this point for Synapse login
-		JSONObject json = new JSONObject(result);
-		logger.log(Level.WARNING, result);
-		resp.setContentType("text/plain");
-		try (ServletOutputStream os=resp.getOutputStream()) {
-			for (String key: json.keySet()) {
-				os.println(key+" "+json.get(key));
-			}
-		}
-		resp.setStatus(200);
 	}
 	
 	
