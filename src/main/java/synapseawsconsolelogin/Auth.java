@@ -44,6 +44,8 @@ import io.jsonwebtoken.Jwts;
 
 public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
+	
+	private static final String AWS_ROLE_ARN = "arn:aws:iam::237179673806:role/ServiceCatalogEndusers";
 
 	private static final String REQUIRED_SYNAPSE_TEAM_ID = "273957";
 	private static final String CLAIMS = "{\"team\":{\"values\":[\""+REQUIRED_SYNAPSE_TEAM_ID+"\"]},"
@@ -76,7 +78,7 @@ public class Auth extends HttpServlet {
 	}
 
 	// TODO should be able to extract the following as the host component of the incoming HTTP Request
-	private static final String CLIENT_ENDPOINT = "http://synapseawsconsolelogin.appspot.com/";
+	private static final String CLIENT_ENDPOINT = "https://synapseawsconsolelogin.appspot.com/";
 	private static final String SYNAPSE_BUTTON_URI = "synapse";
 	
 	private String getRedirectBackUrlSynapse(HttpServletRequest req) throws MalformedURLException {
@@ -212,7 +214,7 @@ public class Auth extends HttpServlet {
 				// get STS token
 				AssumeRoleWithWebIdentityRequest assumeRoleWithWebIdentityRequest = new AssumeRoleWithWebIdentityRequest();
 				assumeRoleWithWebIdentityRequest.setWebIdentityToken(idToken.getToken());
-				assumeRoleWithWebIdentityRequest.setRoleArn("arn:aws:iam::563295687221:role/Service_Catalog_Role");
+				assumeRoleWithWebIdentityRequest.setRoleArn(AWS_ROLE_ARN);
 				assumeRoleWithWebIdentityRequest.setRoleSessionName(synapseUserId);
 				AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.standard().withRegion(Regions.US_EAST_1)
 						.withCredentials(new AWSCredentialsProvider() {
