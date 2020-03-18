@@ -11,7 +11,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
@@ -44,41 +48,65 @@ import io.jsonwebtoken.Jwts;
 
 public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
-	
-	private static final String AWS_ROLE_ARN = "arn:aws:iam::237179673806:role/ServiceCatalogEndusers";
 
-	private static final String REQUIRED_SYNAPSE_TEAM_ID = "273957";
-	private static final String CLAIMS = "{\"team\":{\"values\":[\""+REQUIRED_SYNAPSE_TEAM_ID+"\"]},"
+	private static final String CLAIMS_TEMPLATE = "{\"team\":{\"values\":[\"%1$s\"]},"
 			+ "\"user_name\":{\"essential\":true}"
 			+ "\"family_name\":{\"essential\":true},"
 			+ "\"given_name\":{\"essential\":true},"
 			+ "\"email\":{\"essential\":true},"
 			+ "\"userid\":{\"essential\":true}}";
-	
-    private static final String AUTHORIZE_URL_SYNAPSE = 
-    		"https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
-    		"claims={\"id_token\":"+CLAIMS+",\"userinfo\":"+CLAIMS+"}";
 
-    private static final String TOKEN_URL_SYNAPSE = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
+	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
+	private static final String REDIRECT_URI = "/synapse";
+	private static final String AWS_CONSOLE_URL = "https://console.aws.amazon.com/servicecatalog";
+	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
+	
+	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
+            "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%1$s";
+
+
+	public static Map<String,String> getTeamToRoleMap() throws JSONException {
+		String jsonString = getProperty("TEAM_TO_ROLE_ARN_MAP");
+		JSONObject json = new JSONObject(jsonString);
+		Map<String,String> result = new HashMap<String,String>();
+		for (Iterator<String> iterator=json.keys(); iterator.hasNext();) {
+			String teamId = iterator.next();
+			result.put(teamId, json.getString(teamId));
+		}
+		return result;
+	}
+
+	private static final Map<String,String> TEAM_TO_ROLE_MAP = getTeamToRoleMap();
+	private static final int SESSION_TIMEOUT_SECONDS_DEFAULT = 43200;
+	private static final String SESSION_TIMEOUT_SECONDS;
+	
+	static {
+		String sessionTimeoutSecondsString=getProperty("SESSION_TIMEOUT_SECONDS", false);
+		if (sessionTimeoutSecondsString==null) {
+			SESSION_TIMEOUT_SECONDS = ""+SESSION_TIMEOUT_SECONDS_DEFAULT;
+		} else {
+			SESSION_TIMEOUT_SECONDS = sessionTimeoutSecondsString;
+		}
+	}
+
+	public static final String getAuthorizeUrl() {
+		String claims = String.format(CLAIMS_TEMPLATE, StringUtils.join(TEAM_TO_ROLE_MAP.keySet(), "\",\""));
+		return "https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
+		"claims={\"id_token\":"+claims+",\"userinfo\":"+claims+"}";
+	}
+	
+	private static final String AWS_REGION = getProperty("AWS_REGION");
 
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		try {
-			doPostIntern(req, resp);
-		} catch (Exception e) {
-			logger.log(Level.SEVERE, "", e);
-			resp.setContentType("text/plain");
-			try (ServletOutputStream os=resp.getOutputStream()) {
-				os.println("Error:");
-				e.printStackTrace(new PrintStream(os));
-			}
-			resp.setStatus(500);
+		resp.setContentType("text/plain");
+		try (ServletOutputStream os=resp.getOutputStream()) {
+			os.println("Not found.");
 		}
+		resp.setStatus(404);
 	}
 
-	private static final String REDIRECT_URI = "/synapse";
-	
 	private static String getThisEndpoint(HttpServletRequest req) throws MalformedURLException {
 		String requestUrl = req.getRequestURL().toString();
 		return requestUrl.substring(0, requestUrl.length()-req.getRequestURI().length());
@@ -98,13 +126,6 @@ public class Auth extends HttpServlet {
 		String result =  getProperty("SYNAPSE_OAUTH_CLIENT_SECRET");
 		logger.log(Level.WARNING, "SYNAPSE_OAUTH_CLIENT_SECRET="+result);
 		return result;
-	}
-	
-
-	
-	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
-			throws IOException {
-		throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 	}
 
 	@Override
@@ -126,16 +147,14 @@ public class Auth extends HttpServlet {
 	// from https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html#STSConsoleLink_programJava
 	private String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
 
+		String issuerURL = getThisEndpoint(req);
+
 		// The issuer parameter specifies your internal sign-in
 		// page, for example https://mysignin.internal.mycompany.com/.
 		// The console parameter specifies the URL to the destination console of the
-		// AWS Management Console. This example goes to Amazon SNS. 
+		// AWS Management Console. 
 		// The signin parameter is the URL to send the request to.
 
-		String issuerURL = getThisEndpoint(req);
-		String consoleURL = "https://console.aws.amazon.com/servicecatalog";
-		String signInURL = "https://signin.aws.amazon.com/federation";
-		  
 		// Create the sign-in token using temporary credentials,
 		// including the access key ID,  secret access key, and security token.
 		String sessionJson = String.format(
@@ -145,14 +164,11 @@ public class Auth extends HttpServlet {
 		  "sessionToken", federatedCredentials.getSessionToken());
 		              
 		// Construct the sign-in request with the request sign-in token action, a
-		// 12-hour console session duration, and the JSON document with temporary 
+		// specified console session duration, and the JSON document with temporary 
 		// credentials as parameters.
 
-		String getSigninTokenURL = signInURL + 
-		                           "?Action=getSigninToken" +
-		                           "&DurationSeconds=43200" + 
-		                           "&SessionType=json&Session=" + 
-		                           URLEncoder.encode(sessionJson,"UTF-8");
+		String getSigninTokenURL = String.format(SIGNIN_TOKEN_URL_TEMPLATE, 
+				SESSION_TIMEOUT_SECONDS, URLEncoder.encode(sessionJson,"UTF-8"));
 
 		URL url = new URL(getSigninTokenURL);
 
@@ -173,10 +189,10 @@ public class Auth extends HttpServlet {
 		String issuerParameter = "&Issuer=" + URLEncoder.encode(issuerURL, "UTF-8");
 
 		// Finally, present the completed URL for the AWS console session to the user
-
-		String destinationParameter = "&Destination=" + URLEncoder.encode(consoleURL,"UTF-8");
-		String loginURL = signInURL + "?Action=login" +
-		                     signinTokenParameter + issuerParameter + destinationParameter;	
+		String loginURL = AWS_SIGN_IN_URL + "?Action=login" +
+				signinTokenParameter + issuerParameter +
+				"&Destination=" + URLEncoder.encode(AWS_CONSOLE_URL,"UTF-8");
+		
 		return loginURL;
 	}
 	
@@ -194,68 +210,79 @@ public class Auth extends HttpServlet {
 		OAuth2Api.BasicOAuth2Service service = null;
 		String uri = req.getRequestURI();
 		if (uri.equals("/") || StringUtils.isEmpty(uri)) {
+			// this is the initial redirect to go log in with Synapse
 			String redirectBackUrl = getRedirectBackUrlSynapse(req);
-			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
+			String redirectUrl = new OAuth2Api(getAuthorizeUrl(), TOKEN_URL).
 					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
 			resp.setHeader("Location", redirectUrl);
 			resp.setStatus(303);
 		}	else if (uri.equals(REDIRECT_URI)) {
-			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE)).
+			// this is the second step, after logging in to Synapse
+			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(getAuthorizeUrl(), TOKEN_URL)).
 					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapse(req), null, null, null));
 			String authorizationCode = req.getParameter("code");
 			Token idToken = service.getIdToken(null, new Verifier(authorizationCode));
 			
 			// parse ID Token
 			Jwt<Header,Claims> jwt = parseJWT(idToken.getToken());
-			String synapseUserId = jwt.getBody().get("userid", String.class);
-			// check if a member of 273957.  If not, don't proceed
+			String synapseUserId = jwt.getBody().get("userid", String.class);			
 			List<String> teamIds = jwt.getBody().get("team", List.class);
-			boolean isInDesignatedTeam = (teamIds!=null && teamIds.contains(REQUIRED_SYNAPSE_TEAM_ID));
 			
-			if (isInDesignatedTeam) {
-				// get STS token
-				AssumeRoleWithWebIdentityRequest assumeRoleWithWebIdentityRequest = new AssumeRoleWithWebIdentityRequest();
-				assumeRoleWithWebIdentityRequest.setWebIdentityToken(idToken.getToken());
-				assumeRoleWithWebIdentityRequest.setRoleArn(AWS_ROLE_ARN);
-				assumeRoleWithWebIdentityRequest.setRoleSessionName(synapseUserId);
-				AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.standard().withRegion(Regions.US_EAST_1)
-						.withCredentials(new AWSCredentialsProvider() {
-							@Override
-							public AWSCredentials getCredentials() {
-								return new AWSCredentials() {
-									@Override
-									public String getAWSAccessKeyId() {
-										return "dummyKeyId";
-									}
-									@Override
-									public String getAWSSecretKey() {
-										return "dummySecret";
-									}};
-							}
-							@Override
-							public void refresh() {}}).build();
-				
-				// TODO pass tags https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html
-				AssumeRoleWithWebIdentityResult assumeRoleWithWebIdentityResult = stsClient.assumeRoleWithWebIdentity(assumeRoleWithWebIdentityRequest);
-				Credentials credentials = assumeRoleWithWebIdentityResult.getCredentials();
-				logger.log(Level.INFO, credentials.toString());
-				// redirect to AWS login
-				String redirectURL = getConsoleLoginURL(req, credentials);
-				
-				resp.setHeader("Location", redirectURL);
-				resp.setStatus(302);
-			} else {
+			String selectedTeam = null;
+			String roleArn = null;
+			for (String teamId : TEAM_TO_ROLE_MAP.keySet()) {
+				if (teamIds.contains(teamId)) {
+					selectedTeam = teamId;
+					roleArn = TEAM_TO_ROLE_MAP.get(teamId);
+					break;
+				}
+			}
+			
+			if (roleArn==null) {
 				resp.setContentType("text/plain");
 				try (ServletOutputStream os=resp.getOutputStream()) {
-					os.println("To proceed you must be a member of team "+REQUIRED_SYNAPSE_TEAM_ID);
+					// TO rewrite as hyperlinks to teams
+					os.println("To proceed you must be a member of one of these Synapse teams: "+TEAM_TO_ROLE_MAP.keySet());
 				}
 				resp.setStatus(200);
+				return;
 			}
+
+			// get STS token
+			AssumeRoleWithWebIdentityRequest assumeRoleWithWebIdentityRequest = new AssumeRoleWithWebIdentityRequest();
+			assumeRoleWithWebIdentityRequest.setWebIdentityToken(idToken.getToken());
+			assumeRoleWithWebIdentityRequest.setRoleArn(roleArn);
+			assumeRoleWithWebIdentityRequest.setRoleSessionName(synapseUserId);
+			AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.standard()
+					.withRegion(Regions.fromName(AWS_REGION))
+					.withCredentials(new AWSCredentialsProvider() {
+						@Override
+						public AWSCredentials getCredentials() {
+							return new AWSCredentials() {
+								@Override
+								public String getAWSAccessKeyId() {
+									return "dummyKeyId";
+								}
+								@Override
+								public String getAWSSecretKey() {
+									return "dummySecret";
+								}};
+						}
+						@Override
+						public void refresh() {}}).build();
+			
+			AssumeRoleWithWebIdentityResult assumeRoleWithWebIdentityResult = stsClient.assumeRoleWithWebIdentity(assumeRoleWithWebIdentityRequest);
+			Credentials credentials = assumeRoleWithWebIdentityResult.getCredentials();
+			logger.log(Level.INFO, credentials.toString());
+			// redirect to AWS login
+			String redirectURL = getConsoleLoginURL(req, credentials);
+			
+			resp.setHeader("Location", redirectURL);
+			resp.setStatus(302);
 		} else {
 			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 		}
 	}
-	
 	
 	private static Properties properties = null;
 
