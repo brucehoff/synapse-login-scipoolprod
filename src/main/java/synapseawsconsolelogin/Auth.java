@@ -77,12 +77,15 @@ public class Auth extends HttpServlet {
 		}
 	}
 
-	// TODO should be able to extract the following as the host component of the incoming HTTP Request
-	private static final String CLIENT_ENDPOINT = "https://synapseawsconsolelogin.appspot.com/";
-	private static final String SYNAPSE_BUTTON_URI = "synapse";
+	private static final String REDIRECT_URI = "/synapse";
 	
-	private String getRedirectBackUrlSynapse(HttpServletRequest req) throws MalformedURLException {
-		return CLIENT_ENDPOINT+SYNAPSE_BUTTON_URI;
+	private static String getThisEndpoint(HttpServletRequest req) throws MalformedURLException {
+		String requestUrl = req.getRequestURL().toString();
+		return requestUrl.substring(0, requestUrl.length()-req.getRequestURI().length());
+	}
+	
+	private static String getRedirectBackUrlSynapse(HttpServletRequest req) throws MalformedURLException {
+		return getThisEndpoint(req)+REDIRECT_URI;
 	}
 		
 	private static String getClientIdSynapse() {
@@ -101,15 +104,7 @@ public class Auth extends HttpServlet {
 	
 	private void doPostIntern(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
-			String redirectBackUrl = getRedirectBackUrlSynapse(req);
-			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
-					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
-			resp.setHeader("Location", redirectUrl);
-			resp.setStatus(303);
-		} else {
-			throw new RuntimeException("Unexpected URI "+req.getRequestURI());
-		}
+		throw new RuntimeException("Unexpected URI "+req.getRequestURI());
 	}
 
 	@Override
@@ -129,7 +124,7 @@ public class Auth extends HttpServlet {
 	}
 	
 	// from https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html#STSConsoleLink_programJava
-	private String getConsoleLoginURL(Credentials federatedCredentials) throws IOException {
+	private String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
 
 		// The issuer parameter specifies your internal sign-in
 		// page, for example https://mysignin.internal.mycompany.com/.
@@ -137,7 +132,7 @@ public class Auth extends HttpServlet {
 		// AWS Management Console. This example goes to Amazon SNS. 
 		// The signin parameter is the URL to send the request to.
 
-		String issuerURL = CLIENT_ENDPOINT;
+		String issuerURL = getThisEndpoint(req);
 		String consoleURL = "https://console.aws.amazon.com/servicecatalog";
 		String signInURL = "https://signin.aws.amazon.com/federation";
 		  
@@ -197,7 +192,14 @@ public class Auth extends HttpServlet {
 				throws Exception {
 		
 		OAuth2Api.BasicOAuth2Service service = null;
-		if (req.getRequestURI().contains(SYNAPSE_BUTTON_URI)) {
+		String uri = req.getRequestURI();
+		if (uri.equals("/") || StringUtils.isEmpty(uri)) {
+			String redirectBackUrl = getRedirectBackUrlSynapse(req);
+			String redirectUrl = new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE).
+					getAuthorizationUrl(new OAuthConfig(getClientIdSynapse(), null, redirectBackUrl, null, "openid", null));
+			resp.setHeader("Location", redirectUrl);
+			resp.setStatus(303);
+		}	else if (uri.equals(REDIRECT_URI)) {
 			service = (OAuth2Api.BasicOAuth2Service)(new OAuth2Api(AUTHORIZE_URL_SYNAPSE, TOKEN_URL_SYNAPSE)).
 					createService(new OAuthConfig(getClientIdSynapse(), getClientSecretSynapse(), getRedirectBackUrlSynapse(req), null, null, null));
 			String authorizationCode = req.getParameter("code");
@@ -238,7 +240,7 @@ public class Auth extends HttpServlet {
 				Credentials credentials = assumeRoleWithWebIdentityResult.getCredentials();
 				logger.log(Level.INFO, credentials.toString());
 				// redirect to AWS login
-				String redirectURL = getConsoleLoginURL(credentials);
+				String redirectURL = getConsoleLoginURL(req, credentials);
 				
 				resp.setHeader("Location", redirectURL);
 				resp.setStatus(302);
