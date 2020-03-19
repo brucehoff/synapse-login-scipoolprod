@@ -11,8 +11,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.scribe.model.OAuthConfig;
@@ -67,11 +68,11 @@ public class Auth extends HttpServlet {
 
 	public static Map<String,String> getTeamToRoleMap() throws JSONException {
 		String jsonString = getProperty("TEAM_TO_ROLE_ARN_MAP");
-		JSONObject json = new JSONObject(jsonString);
-		Map<String,String> result = new HashMap<String,String>();
-		for (Iterator<String> iterator=json.keys(); iterator.hasNext();) {
-			String teamId = iterator.next();
-			result.put(teamId, json.getString(teamId));
+		JSONArray array = new JSONArray(jsonString);
+		Map<String,String> result = new LinkedHashMap<String,String>();
+		for (Iterator<Object> iterator=array.iterator(); iterator.hasNext();) {
+			JSONObject entry = (JSONObject)iterator.next();
+			result.put(entry.getString("teamId"), entry.getString("roleArn"));
 		}
 		return result;
 	}
@@ -315,16 +316,16 @@ public class Auth extends HttpServlet {
 	public static String getProperty(String key, boolean required) {
 		initProperties();
 		{
+			String commandlineOption = System.getProperty(key);
+			if (!missing(commandlineOption)) return commandlineOption;
+		}
+		{
 			String embeddedProperty = properties.getProperty(key);
 			if (!missing(embeddedProperty)) return embeddedProperty;
 		}
 		{
 			String environmentVariable = System.getenv(key);
 			if (!missing(environmentVariable)) return environmentVariable;
-		}
-		{
-			String commandlineOption = System.getProperty(key);
-			if (!missing(commandlineOption)) return commandlineOption;
 		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
