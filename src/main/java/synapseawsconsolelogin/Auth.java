@@ -243,7 +243,7 @@ public class Auth extends HttpServlet {
 				resp.setContentType("text/html");
 				try (ServletOutputStream os=resp.getOutputStream()) {
 					os.println("<html><head/><body>");
-					os.println("<h2>To proceed you must be a member of one of these Synapse teams:</h2>");
+					os.println("<h3>To proceed you must be a member of one of these Synapse teams:</h3>");
 					os.println("<ul>");
 					for (String teamId : TEAM_TO_ROLE_MAP.keySet()) {
 						os.println(String.format("<li><a href=\"https://www.synapse.org/#!Team:%1$s\">https://www.synapse.org/#!Team:%1$s</a></li>", teamId));
