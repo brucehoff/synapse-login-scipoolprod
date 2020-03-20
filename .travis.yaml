@@ -10,4 +10,4 @@ jobs:
   include:
     - stage: mvn_install
       script:
-        - mvn clean install --fail-never
+        - mvn clean install
