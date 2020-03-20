@@ -13,6 +13,7 @@ public class AuthTest {
 	@BeforeClass
 	public static void setUp() {
 		System.setProperty("TEAM_TO_ROLE_ARN_MAP","[{\"teamId\":\"123456\",\"roleArn\":\"arn:aws:iam::foo\"},{\"teamId\":\"345678\",\"roleArn\":\"arn:aws:iam::bar\"}]");
+		System.setProperty("AWS_REGION", "us-east-1");
 	}
 
 	@Test
