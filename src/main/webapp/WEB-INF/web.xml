@@ -8,7 +8,7 @@
     	<servlet-name>default</servlet-name>
     	<url-pattern>/</url-pattern>
 	</servlet-mapping>
-  
+
 	<servlet>
 		<servlet-name>synapseAwsConsoleLogin</servlet-name>
 		<servlet-class>synapseawsconsolelogin.Auth</servlet-class>
@@ -17,7 +17,6 @@
 	<servlet-mapping>
 		<servlet-name>synapseAwsConsoleLogin</servlet-name>
 		<url-pattern>/synapse</url-pattern>
-		<url-pattern>/</url-pattern>
 	</servlet-mapping>
 
 </web-app>
