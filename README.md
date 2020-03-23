@@ -15,7 +15,7 @@ USER_CLAIMS=userid
 Note: When mapping team ID to AWS Role, this app' uses the first match it encounters,
 iterating through the team/role list in the order given. 
 
-Note:  `USER_CLAIMS` is a comma separated lst of claims from the list of availalble cliams, given here:
+Note:  `USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
 https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/model/oauth/OIDCClaimName.html
 
 
