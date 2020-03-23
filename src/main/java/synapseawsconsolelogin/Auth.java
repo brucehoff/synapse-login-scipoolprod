@@ -11,7 +11,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,15 +50,17 @@ import io.jsonwebtoken.Jwts;
 public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
 
-	private static final String CLAIMS_TEMPLATE = "{\"team\":{\"values\":[\"%1$s\"]},%2$s}";
-	
-	private static final String CLAIM_TEMPLATE="\"%1$s\":{\"essential\":true}";
+	private static final String CLAIMS_TEMPLATE = "{\"team\":{\"values\":[\"%1$s\"]},"
+			+ "\"user_name\":{\"essential\":true}"
+			+ "\"family_name\":{\"essential\":true},"
+			+ "\"given_name\":{\"essential\":true},"
+			+ "\"email\":{\"essential\":true},"
+			+ "\"userid\":{\"essential\":true}}";
 
 	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 	private static final String REDIRECT_URI = "/synapse";
 	private static final String AWS_CONSOLE_URL = "https://console.aws.amazon.com/servicecatalog";
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
-	private static final String USER_CLAIMS_DEFAULT="userid";
 	
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
             "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%2$s";
@@ -88,21 +89,9 @@ public class Auth extends HttpServlet {
 			SESSION_TIMEOUT_SECONDS = sessionTimeoutSecondsString;
 		}
 	}
-	
-	public static List<String> getClaimNames() {
-		String userClaimString = getProperty("USER_CLAIMS", false);
-		if (StringUtils.isEmpty(userClaimString)) userClaimString=USER_CLAIMS_DEFAULT;
-		return Arrays.asList(userClaimString.split(","));
-	}
 
 	public static final String getAuthorizeUrl() {
-		StringBuilder sb = new StringBuilder();
-		boolean first=true;
-		for (String claimName : getClaimNames()) {
-			if (first) first=false; else sb.append(",");
-			sb.append(String.format(CLAIM_TEMPLATE, claimName));
-		}
-		String claims = String.format(CLAIMS_TEMPLATE, StringUtils.join(TEAM_TO_ROLE_MAP.keySet(), "\",\""), sb.toString());
+		String claims = String.format(CLAIMS_TEMPLATE, StringUtils.join(TEAM_TO_ROLE_MAP.keySet(), "\",\""));
 		return "https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
 		"claims={\"id_token\":"+claims+",\"userinfo\":"+claims+"}";
 	}
@@ -237,6 +226,7 @@ public class Auth extends HttpServlet {
 			
 			// parse ID Token
 			Jwt<Header,Claims> jwt = parseJWT(idToken.getToken());
+			String synapseUserId = jwt.getBody().get("userid", String.class);			
 			List<String> teamIds = jwt.getBody().get("team", List.class);
 			
 			String selectedTeam = null;
@@ -265,20 +255,11 @@ public class Auth extends HttpServlet {
 				return;
 			}
 
-			StringBuilder awsSessionName = new StringBuilder();
-			boolean first=true;
-			for (String claimName : getClaimNames()) {
-				String claimValue = jwt.getBody().get(claimName, String.class);
-				if (StringUtils.isEmpty(claimValue)) continue;
-				if (first) first=false; else awsSessionName.append(":");
-				awsSessionName.append(claimValue);
-			}
-
 			// get STS token
 			AssumeRoleWithWebIdentityRequest assumeRoleWithWebIdentityRequest = new AssumeRoleWithWebIdentityRequest();
 			assumeRoleWithWebIdentityRequest.setWebIdentityToken(idToken.getToken());
 			assumeRoleWithWebIdentityRequest.setRoleArn(roleArn);
-			assumeRoleWithWebIdentityRequest.setRoleSessionName(awsSessionName.toString());
+			assumeRoleWithWebIdentityRequest.setRoleSessionName(synapseUserId);
 			AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.standard()
 					.withRegion(Regions.fromName(AWS_REGION))
 					.withCredentials(new AWSCredentialsProvider() {
