@@ -10,9 +10,13 @@ SYNAPSE_OAUTH_CLIENT_SECRET=xxxxxx
 TEAM_TO_ROLE_ARN_MAP=[{"teamId":"xxxxxx","roleArn":"arn:aws:iam::xxxxxx:role/ServiceCatalogEndusers"}, ...]
 AWS_REGION=us-east-1
 SESSION_TIMEOUT_SECONDS=43200
+USER_CLAIMS=userid
 ```
 Note: When mapping team ID to AWS Role, this app' uses the first match it encounters,
-iterating through the team/role list in the order given.  
+iterating through the team/role list in the order given. 
+
+Note:  `USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
+https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/model/oauth/OIDCClaimName.html
 
 
 
