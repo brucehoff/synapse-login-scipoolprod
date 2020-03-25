@@ -27,4 +27,4 @@ jobs:
     - stage: deploy
       script:
         - mvn clean package
-        - eb deploy synapse-login-scipoolprod --verbose
+        - eb deploy synapse-login-scipoolprod --profile default --region us-east-1 --verbose
