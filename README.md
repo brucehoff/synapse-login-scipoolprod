@@ -13,15 +13,17 @@ AWS_REGION=us-east-1
 SESSION_TIMEOUT_SECONDS=43200
 USER_CLAIMS=userid
 ```
-Note: When mapping team ID to AWS Role, this app' uses the first match it encounters,
+
+# Team to role map
+This defines the mapping between the synapse team and the AWS role. When
+mapping team ID to AWS Role, this app' uses the first match it encounters,
 iterating through the team/role list in the order given. 
 
 
 # Claims
 
-Note:  `USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
+`USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
 https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/model/oauth/OIDCClaimName.html
 
-For example setting `USER_CLAIMS=userid,email` will display `ServiceCatalogEndusers/1234567:joe.smith@gmail.com` in AWS. 
-
-
+For example, setting `USER_CLAIMS=userid,email` will display
+`ServiceCatalogEndusers/1234567:joe.smith@gmail.com` in AWS. 
