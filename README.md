@@ -1,3 +1,4 @@
+# Overview
 This app logs in to the AWS Console using Synapse as the OpenID Connect (OIDC) identity provider
 
 
@@ -15,8 +16,12 @@ USER_CLAIMS=userid
 Note: When mapping team ID to AWS Role, this app' uses the first match it encounters,
 iterating through the team/role list in the order given. 
 
+
+# Claims
+
 Note:  `USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
 https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/model/oauth/OIDCClaimName.html
 
+For example setting `USER_CLAIMS=userid,email` will display `ServiceCatalogEndusers/1234567:joe.smith@gmail.com` in AWS. 
 
 
