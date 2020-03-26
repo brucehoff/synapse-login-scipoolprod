@@ -1,9 +1,12 @@
 # Overview
-This app logs in to the AWS Console using Synapse as the OpenID Connect (OIDC) identity provider
+This app logs in to the AWS Console using Synapse as the OpenID Connect
+(OIDC) identity provider
 
-
-Must be configured with five parameters which can be passed as properties, environment variables, or 
-a properties file on the class loader search path called `global.properties` like so:
+# Configurations
+The app must be configured with five parameters which can be passed as
+properties, environment variables, or a properties file on the class
+loader search path called [global.properties](src/main/resources/global.propertie)
+like so:
 
 ```
 SYNAPSE_OAUTH_CLIENT_ID=xxxxxx
@@ -21,9 +24,9 @@ iterating through the team/role list in the order given.
 
 
 # Claims
-
-`USER_CLAIMS` is a comma separated list of claims from the list of available claims, given here:
+The `USER_CLAIMS` config is a comma separated list of claims from the list of
+available claims, given here:
 https://rest-docs.synapse.org/rest/org/sagebionetworks/repo/model/oauth/OIDCClaimName.html
 
-For example, setting `USER_CLAIMS=userid,email` will display
+For example: setting `USER_CLAIMS=userid,email` will display
 `ServiceCatalogEndusers/1234567:joe.smith@gmail.com` in AWS. 
