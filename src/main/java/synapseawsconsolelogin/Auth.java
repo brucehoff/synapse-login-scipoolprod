@@ -58,7 +58,7 @@ public class Auth extends HttpServlet {
 	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 	private static final String REDIRECT_URI = "/synapse";
 	private static final String HEALTH_URI = "/health";
-	private static final String AWS_CONSOLE_URL = "https://console.aws.amazon.com/servicecatalog";
+	private static final String AWS_CONSOLE_URL_TEMPLATE = "https://%1$s.console.aws.amazon.com/servicecatalog";
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
 	
@@ -113,8 +113,13 @@ public class Auth extends HttpServlet {
 		"claims={\"id_token\":"+claims+",\"userinfo\":"+claims+"}";
 	}
 	
-	private static final String AWS_REGION = getProperty("AWS_REGION");
-
+	private static final String AWS_REGION;
+	private static final String AWS_CONSOLE_URL;
+	static {
+		AWS_REGION = getProperty("AWS_REGION");
+		AWS_CONSOLE_URL = String.format(AWS_CONSOLE_URL_TEMPLATE, AWS_REGION);
+	}
+	
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -162,7 +167,7 @@ public class Auth extends HttpServlet {
 	}
 	
 	// from https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html#STSConsoleLink_programJava
-	private String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
+	static String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
 
 		String issuerURL = getThisEndpoint(req);
 
