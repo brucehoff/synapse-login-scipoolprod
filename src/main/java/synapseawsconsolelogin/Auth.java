@@ -58,7 +58,7 @@ public class Auth extends HttpServlet {
 	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 	private static final String REDIRECT_URI = "/synapse";
 	private static final String HEALTH_URI = "/health";
-	private static final String AWS_CONSOLE_URL_TEMPLATE = "https://%1$s.console.aws.amazon.com/servicecatalog";
+	private static final String AWS_CONSOLE_URL_TEMPLATE = "https://%1$s.console.aws.amazon.com/servicecatalog/home?region=%1$s#/products";
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
 	

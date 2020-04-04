@@ -61,7 +61,7 @@ public class AuthTest {
 		String actual = Auth.getConsoleLoginURL(req, credentials);
 		
 		String expectedPrefix = "https://signin.aws.amazon.com/federation?Action=login&SigninToken=";
-		String expectedSuffix = "&Issuer=https%3Awww.foo.com&Destination=https%3A%2F%2Fus-east-1.console.aws.amazon.com%2Fservicecatalog";
+		String expectedSuffix = "&Issuer=https%3Awww.foo.com&Destination=https%3A%2F%2Fus-east-1.console.aws.amazon.com%2Fservicecatalog%2Fhome%3Fregion%3Dus-east-1%23%2Fproducts";
 		
 		assertTrue(actual.startsWith(expectedPrefix));
 		assertTrue(actual.endsWith(expectedSuffix));
