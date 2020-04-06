@@ -65,15 +65,9 @@ public class Auth extends HttpServlet {
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
             "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%2$s";
 
+	private static final String PROPERTIES_FILENAME_PARAMETER = "PROPERTIES_FILENAME";
 	private static Properties properties = null;
 	
-	private static final String[] PROPERTY_FILES = new String [] {
-			"global.properties",
-			"dev.properties",
-			"staging.properties",
-			"prod.properties"
-	};
-
 	public static Map<String,String> getTeamToRoleMap() throws JSONException {
 		String jsonString = getProperty("TEAM_TO_ROLE_ARN_MAP");
 		JSONArray array;
@@ -327,19 +321,28 @@ public class Auth extends HttpServlet {
 	public static void initProperties() {
 		if (properties!=null) return;
 		properties = new Properties();
-		for (String propertyFile : PROPERTY_FILES) {
-			InputStream is = null;
-			try {
-				is = Auth.class.getClassLoader().getResourceAsStream(propertyFile);
-				if (is!=null) properties.load(is);
+		
+		String propertyFileName = System.getProperty(PROPERTIES_FILENAME_PARAMETER);
+		if (StringUtils.isEmpty(propertyFileName)) {
+			propertyFileName = System.getenv(PROPERTIES_FILENAME_PARAMETER);
+			
+		}
+		if (StringUtils.isEmpty(propertyFileName)) {
+			propertyFileName = "global.properties";
+			
+		}
+		
+		InputStream is = null;
+		try {
+			is = Auth.class.getClassLoader().getResourceAsStream(propertyFileName);
+			if (is!=null) properties.load(is);
+		} catch (IOException e) {
+			logger.log(Level.INFO, " does not exist.");
+		} finally {
+			if (is!=null) try {
+				is.close();
 			} catch (IOException e) {
-				logger.log(Level.INFO, " does not exist.");
-			} finally {
-				if (is!=null) try {
-					is.close();
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				throw new RuntimeException(e);
 			}
 		}
 	}
