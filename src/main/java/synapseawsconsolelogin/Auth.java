@@ -337,7 +337,7 @@ public class Auth extends HttpServlet {
 			is = Auth.class.getClassLoader().getResourceAsStream(propertyFileName);
 			if (is!=null) properties.load(is);
 		} catch (IOException e) {
-			logger.log(Level.INFO, " does not exist.");
+			logger.log(Level.INFO, propertyFileName+" does not exist.");
 		} finally {
 			if (is!=null) try {
 				is.close();
