@@ -52,23 +52,24 @@ public class Auth extends HttpServlet {
 	private static Logger logger = Logger.getLogger("Auth");
 
 	private static final String CLAIMS_TEMPLATE = "{\"team\":{\"values\":[\"%1$s\"]},%2$s}";
-	
 	private static final String CLAIM_TEMPLATE="\"%1$s\":{\"essential\":true}";
-
 	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 	private static final String REDIRECT_URI = "/synapse";
 	private static final String HEALTH_URI = "/health";
 	private static final String AWS_CONSOLE_URL = "https://console.aws.amazon.com/servicecatalog";
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
-	
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
             "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%2$s";
-
 	private static final String PROPERTIES_FILENAME_PARAMETER = "PROPERTIES_FILENAME";
-	private static Properties properties = null;
+	private static final int SESSION_TIMEOUT_SECONDS_DEFAULT = 43200;
 	
-	public static Map<String,String> getTeamToRoleMap() throws JSONException {
+	private Map<String,String> teamToRoleMap;
+	private String sessionTimeoutSeconds;
+	private String awsRegion;
+	private Properties properties = null;
+	
+	Map<String,String> getTeamToRoleMap() throws JSONException {
 		String jsonString = getProperty("TEAM_TO_ROLE_ARN_MAP");
 		JSONArray array;
 		try {
@@ -84,39 +85,35 @@ public class Auth extends HttpServlet {
 		return result;
 	}
 
-	private static final Map<String,String> TEAM_TO_ROLE_MAP = getTeamToRoleMap();
-	private static final int SESSION_TIMEOUT_SECONDS_DEFAULT = 43200;
-	private static final String SESSION_TIMEOUT_SECONDS;
-	
-	static {
+	public Auth() {
 		String sessionTimeoutSecondsString=getProperty("SESSION_TIMEOUT_SECONDS", false);
 		if (sessionTimeoutSecondsString==null) {
-			SESSION_TIMEOUT_SECONDS = ""+SESSION_TIMEOUT_SECONDS_DEFAULT;
+			sessionTimeoutSeconds = ""+SESSION_TIMEOUT_SECONDS_DEFAULT;
 		} else {
-			SESSION_TIMEOUT_SECONDS = sessionTimeoutSecondsString;
+			sessionTimeoutSeconds = sessionTimeoutSecondsString;
 		}
+		teamToRoleMap = getTeamToRoleMap();
+		awsRegion = getProperty("AWS_REGION");
 	}
 	
-	public static List<String> getClaimNames() {
+	public List<String> getClaimNames() {
 		String userClaimString = getProperty("USER_CLAIMS", false);
 		if (StringUtils.isEmpty(userClaimString)) userClaimString=USER_CLAIMS_DEFAULT;
 		return Arrays.asList(userClaimString.split(","));
 	}
 
-	public static final String getAuthorizeUrl() {
+	public String getAuthorizeUrl() {
 		StringBuilder sb = new StringBuilder();
 		boolean first=true;
 		for (String claimName : getClaimNames()) {
 			if (first) first=false; else sb.append(",");
 			sb.append(String.format(CLAIM_TEMPLATE, claimName));
 		}
-		String claims = String.format(CLAIMS_TEMPLATE, StringUtils.join(TEAM_TO_ROLE_MAP.keySet(), "\",\""), sb.toString());
+		String claims = String.format(CLAIMS_TEMPLATE, StringUtils.join(teamToRoleMap.keySet(), "\",\""), sb.toString());
 		return "https://signin.synapse.org?response_type=code&client_id=%s&redirect_uri=%s&"+
 		"claims={\"id_token\":"+claims+",\"userinfo\":"+claims+"}";
 	}
 	
-	private static final String AWS_REGION = getProperty("AWS_REGION");
-
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
@@ -136,13 +133,13 @@ public class Auth extends HttpServlet {
 		return getThisEndpoint(req)+REDIRECT_URI;
 	}
 		
-	private static String getClientIdSynapse() {
+	private String getClientIdSynapse() {
 		String result = getProperty("SYNAPSE_OAUTH_CLIENT_ID");
 		logger.log(Level.WARNING, "SYNAPSE_OAUTH_CLIENT_ID="+result);
 		return result;
 	}
 	
-	private static String getClientSecretSynapse() {
+	private String getClientSecretSynapse() {
 		String result =  getProperty("SYNAPSE_OAUTH_CLIENT_SECRET");
 		return result;
 	}
@@ -187,7 +184,7 @@ public class Auth extends HttpServlet {
 		// credentials as parameters.
 
 		String getSigninTokenURL = String.format(SIGNIN_TOKEN_URL_TEMPLATE, 
-				SESSION_TIMEOUT_SECONDS, URLEncoder.encode(sessionJson,"UTF-8"));
+				sessionTimeoutSeconds, URLEncoder.encode(sessionJson,"UTF-8"));
 
 		URL url = new URL(getSigninTokenURL);
 
@@ -248,10 +245,10 @@ public class Auth extends HttpServlet {
 			
 			String selectedTeam = null;
 			String roleArn = null;
-			for (String teamId : TEAM_TO_ROLE_MAP.keySet()) {
+			for (String teamId : teamToRoleMap.keySet()) {
 				if (teamIds.contains(teamId)) {
 					selectedTeam = teamId;
-					roleArn = TEAM_TO_ROLE_MAP.get(teamId);
+					roleArn = teamToRoleMap.get(teamId);
 					break;
 				}
 			}
@@ -262,7 +259,7 @@ public class Auth extends HttpServlet {
 					os.println("<html><head/><body>");
 					os.println("<h3>To proceed you must be a member of one of these Synapse teams:</h3>");
 					os.println("<ul>");
-					for (String teamId : TEAM_TO_ROLE_MAP.keySet()) {
+					for (String teamId : teamToRoleMap.keySet()) {
 						os.println(String.format("<li><a href=\"https://www.synapse.org/#!Team:%1$s\">https://www.synapse.org/#!Team:%1$s</a></li>", teamId));
 					}
 					os.println("</ul>");
@@ -287,7 +284,7 @@ public class Auth extends HttpServlet {
 			assumeRoleWithWebIdentityRequest.setRoleArn(roleArn);
 			assumeRoleWithWebIdentityRequest.setRoleSessionName(awsSessionName.toString());
 			AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClientBuilder.standard()
-					.withRegion(Regions.fromName(AWS_REGION))
+					.withRegion(Regions.fromName(awsRegion))
 					.withCredentials(new AWSCredentialsProvider() {
 						@Override
 						public AWSCredentials getCredentials() {
@@ -318,13 +315,13 @@ public class Auth extends HttpServlet {
 		}
 	}
 	
-	public static void initProperties() {
+	public void initProperties() {
 		if (properties!=null) return;
 		properties = new Properties();
 		
-		String propertyFileName = System.getProperty(PROPERTIES_FILENAME_PARAMETER);
+		String propertyFileName = System.getenv(PROPERTIES_FILENAME_PARAMETER);
 		if (StringUtils.isEmpty(propertyFileName)) {
-			propertyFileName = System.getenv(PROPERTIES_FILENAME_PARAMETER);
+			propertyFileName = System.getProperty(PROPERTIES_FILENAME_PARAMETER);
 			
 		}
 		if (StringUtils.isEmpty(propertyFileName)) {
@@ -347,7 +344,7 @@ public class Auth extends HttpServlet {
 		}
 	}
 
-	public static String getProperty(String key) {
+	public String getProperty(String key) {
 		return getProperty(key, true);
 	}
 	
@@ -355,8 +352,12 @@ public class Auth extends HttpServlet {
 		return StringUtils.isEmpty(s) || "null".equals(s);
 	}
 
-	public static String getProperty(String key, boolean required) {
+	public String getProperty(String key, boolean required) {
 		initProperties();
+		{
+			String environmentVariable = System.getenv(key);
+			if (!missing(environmentVariable)) return environmentVariable;
+		}
 		{
 			String commandlineOption = System.getProperty(key);
 			if (!missing(commandlineOption)) return commandlineOption;
@@ -364,10 +365,6 @@ public class Auth extends HttpServlet {
 		{
 			String embeddedProperty = properties.getProperty(key);
 			if (!missing(embeddedProperty)) return embeddedProperty;
-		}
-		{
-			String environmentVariable = System.getenv(key);
-			if (!missing(environmentVariable)) return environmentVariable;
 		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
