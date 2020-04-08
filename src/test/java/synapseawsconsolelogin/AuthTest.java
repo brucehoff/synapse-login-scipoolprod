@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Test;
