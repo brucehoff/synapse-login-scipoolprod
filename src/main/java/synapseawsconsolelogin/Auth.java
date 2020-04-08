@@ -116,14 +116,6 @@ public class Auth extends HttpServlet {
 		"claims={\"id_token\":"+claims+",\"userinfo\":"+claims+"}";
 	}
 	
-//<<<<<<< HEAD
-//=======
-//	private static final String AWS_REGION;
-//	private static final String AWS_CONSOLE_URL;
-//	static {
-//	}
-//	
-//>>>>>>> d18f9ed9d01910032fa7430b4b2ab7f2fe993e6d
 	@Override
 	public void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
