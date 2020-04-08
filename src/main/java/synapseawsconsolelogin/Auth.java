@@ -12,6 +12,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,12 +36,18 @@ import org.scribe.model.Verifier;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithWebIdentityRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithWebIdentityResult;
 import com.amazonaws.services.securitytoken.model.Credentials;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParametersResult;
+import com.amazonaws.services.simplesystemsmanagement.model.Parameter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -366,7 +373,29 @@ public class Auth extends HttpServlet {
 			String embeddedProperty = properties.getProperty(key);
 			if (!missing(embeddedProperty)) return embeddedProperty;
 		}
+		{
+			String ssmParameter = getSSMParameter(key);
+			if (!missing(ssmParameter)) return ssmParameter;
+		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
+		return null;
+	}
+	
+	private String getSSMParameter(String name) {
+		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
+			builder.withCredentials(new DefaultAWSCredentialsProviderChain());
+			builder.withRegion(awsRegion);
+
+		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+		GetParametersRequest getParametersRequest = new GetParametersRequest();
+		getParametersRequest.setNames(Collections.singletonList(name));
+		GetParametersResult getParametersResult = ssmClient.getParameters(getParametersRequest);
+		List<Parameter> paramList = getParametersResult.getParameters();
+		for (Parameter parameter : paramList) {
+			if (parameter.getName().equals(name)) {
+				return parameter.getValue();
+			}
+		}
 		return null;
 	}
 

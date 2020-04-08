@@ -1,6 +1,7 @@
 package synapseawsconsolelogin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Map;
 
@@ -53,6 +54,13 @@ public class AuthTest {
 		System.setProperty(name, value);
 		Auth auth = new Auth();
 		assertEquals(value, auth.getProperty(name));
+		
+	}
+
+	@Test
+	public void testGetMissingOptionalProperty() {
+		Auth auth = new Auth();
+		assertNull(auth.getProperty("undefined-property", false));
 		
 	}
 
