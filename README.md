@@ -17,6 +17,14 @@ SESSION_TIMEOUT_SECONDS=43200
 USER_CLAIMS=userid
 ```
 
+The name of the properties file, `global.properties` can be overridden by setting an environment variable or 
+system property called `PROPERTIES_FILENAME`.
+
+In the case that a parameter is passed in multiple ways, priority is as follows:
+- Environment variable
+- System property
+- Properties file entry
+
 ### Team to role map
 This defines the mapping between the synapse team and the AWS role. When
 mapping team ID to AWS Role, this app' uses the first match it encounters,
