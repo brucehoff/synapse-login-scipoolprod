@@ -2,12 +2,25 @@ package synapseawsconsolelogin;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
-import org.junit.Test;
+import javax.servlet.http.HttpServletRequest;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+
+import com.amazonaws.services.securitytoken.model.Credentials;
+
+@RunWith(MockitoJUnitRunner.class)
 public class AuthTest {
+	
+	@Mock
+	private HttpServletRequest req;
 	
 	@Test
 	public void testReadTeamToArnMap() {
@@ -64,5 +77,27 @@ public class AuthTest {
 		
 	}
 
+	public void testGetConsoleLoginURL() throws Exception {
+		StringBuffer urlBuffer = new StringBuffer();
+		urlBuffer.append("https:www.foo.com/bar");
+		when(req.getRequestURL()).thenReturn(urlBuffer);
+		
+		when(req.getRequestURI()).thenReturn("/bar");
+		
+		Credentials credentials = new Credentials();
+		credentials.setAccessKeyId("keyId");
+		credentials.setSecretAccessKey("keySecret");
+		credentials.setSessionToken("token");
+		
+		// method under test
+		Auth auth = new Auth();
+		String actual = auth.getConsoleLoginURL(req, credentials);
+		
+		String expectedPrefix = "https://signin.aws.amazon.com/federation?Action=login&SigninToken=";
+		String expectedSuffix = "&Issuer=https%3Awww.foo.com&Destination=https%3A%2F%2Fus-east-1.console.aws.amazon.com%2Fservicecatalog%2Fhome%3Fregion%3Dus-east-1%23%2Fproducts";
+		
+		assertTrue(actual.startsWith(expectedPrefix));
+		assertTrue(actual.endsWith(expectedSuffix));
+	}
 
 }

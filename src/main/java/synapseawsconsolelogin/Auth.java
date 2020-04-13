@@ -63,7 +63,7 @@ public class Auth extends HttpServlet {
 	private static final String TOKEN_URL = "https://repo-prod.prod.sagebase.org/auth/v1/oauth2/token";
 	private static final String REDIRECT_URI = "/synapse";
 	private static final String HEALTH_URI = "/health";
-	private static final String AWS_CONSOLE_URL = "https://console.aws.amazon.com/servicecatalog";
+	private static final String AWS_CONSOLE_URL_TEMPLATE = "https://%1$s.console.aws.amazon.com/servicecatalog/home?region=%1$s#/products";
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
@@ -75,6 +75,7 @@ public class Auth extends HttpServlet {
 	private String sessionTimeoutSeconds;
 	private String awsRegion;
 	private Properties properties = null;
+	private String awsConsoleUrl;
 	
 	Map<String,String> getTeamToRoleMap() throws JSONException {
 		String jsonString = getProperty("TEAM_TO_ROLE_ARN_MAP");
@@ -101,6 +102,7 @@ public class Auth extends HttpServlet {
 		}
 		teamToRoleMap = getTeamToRoleMap();
 		awsRegion = getProperty("AWS_REGION");
+		awsConsoleUrl = String.format(AWS_CONSOLE_URL_TEMPLATE, awsRegion);
 	}
 	
 	public List<String> getClaimNames() {
@@ -168,7 +170,7 @@ public class Auth extends HttpServlet {
 	}
 	
 	// from https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html#STSConsoleLink_programJava
-	private String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
+	String getConsoleLoginURL(HttpServletRequest req, Credentials federatedCredentials) throws IOException {
 
 		String issuerURL = getThisEndpoint(req);
 
@@ -214,7 +216,7 @@ public class Auth extends HttpServlet {
 		// Finally, present the completed URL for the AWS console session to the user
 		String loginURL = AWS_SIGN_IN_URL + "?Action=login" +
 				signinTokenParameter + issuerParameter +
-				"&Destination=" + URLEncoder.encode(AWS_CONSOLE_URL,"UTF-8");
+				"&Destination=" + URLEncoder.encode(awsConsoleUrl,"UTF-8");
 		
 		return loginURL;
 	}
