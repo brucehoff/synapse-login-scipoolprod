@@ -377,20 +377,21 @@ public class Auth extends HttpServlet {
 		}
 		{
 			String ssmParameter = getSSMParameter(key);
-			if (!missing(ssmParameter)) return ssmParameter;
+			if (!missing(ssmParameter)) {
+				// looking this up is expensive, let's cache it for next time
+				properties.setProperty(key, ssmParameter);
+				return ssmParameter;
+			}
 		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
 	}
 	
 	private String getSSMParameter(String name) {
-		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
-			builder.withCredentials(new DefaultAWSCredentialsProviderChain());
-			builder.withRegion(awsRegion);
-
 		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
 		GetParametersRequest getParametersRequest = new GetParametersRequest();
 		getParametersRequest.setNames(Collections.singletonList(name));
+		getParametersRequest.setWithDecryption(true);
 		GetParametersResult getParametersResult = ssmClient.getParameters(getParametersRequest);
 		List<Parameter> paramList = getParametersResult.getParameters();
 		for (Parameter parameter : paramList) {
