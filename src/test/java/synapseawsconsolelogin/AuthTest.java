@@ -88,8 +88,14 @@ public class AuthTest {
 	@Test
 	public void testGetSSMParameter() {
 		// we only want to run this test if we can connect to AWS
-		AWSCredentials credentials = DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
+		AWSCredentials credentials = null;
+		try {
+			credentials = DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
+		} catch (Exception e) {
+			Assume.assumeNoException(e);
+		}
 		Assume.assumeNotNull(credentials, credentials.getAWSAccessKeyId(), credentials.getAWSSecretKey());
+		
 		
 		String propertyName = UUID.randomUUID().toString();
 		String propertyValue = UUID.randomUUID().toString();
