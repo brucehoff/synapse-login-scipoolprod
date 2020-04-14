@@ -4,8 +4,9 @@ This app logs in to the AWS Console using Synapse as the OpenID Connect
 
 ## Configurations
 The app must be configured with five parameters which can be passed as
-properties, environment variables, or a properties file on the class
-loader search path called [global.properties](src/main/resources/global.properties)
+properties, environment variables, AWS Simple System Management (SSM) parameters,
+or a properties file on the class loader search path called 
+[global.properties](src/main/resources/global.properties)
 like so:
 
 ```
@@ -24,6 +25,10 @@ In the case that a parameter is passed in multiple ways, priority is as follows:
 - Environment variable
 - System property
 - Properties file entry
+- SSM parameter
+
+Note:  The intention is to use SSM to securely store the OAuth client secret.  We recommend storing
+it as an SSM _secure string_.
 
 ### Team to role map
 This defines the mapping between the synapse team and the AWS role. When
