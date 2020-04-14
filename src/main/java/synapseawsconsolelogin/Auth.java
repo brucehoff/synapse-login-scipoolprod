@@ -34,6 +34,7 @@ import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -388,6 +389,11 @@ public class Auth extends HttpServlet {
 	}
 	
 	private String getSSMParameter(String name) {
+		try {
+			DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
+		} catch (SdkClientException e) {
+			return null;
+		}
 		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
 		GetParametersRequest getParametersRequest = new GetParametersRequest();
 		getParametersRequest.setNames(Collections.singletonList(name));

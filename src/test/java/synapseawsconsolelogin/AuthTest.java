@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.securitytoken.model.Credentials;
@@ -91,7 +92,7 @@ public class AuthTest {
 		AWSCredentials credentials = null;
 		try {
 			credentials = DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
-		} catch (Exception e) {
+		} catch (SdkClientException e) {
 			Assume.assumeNoException(e);
 		}
 		Assume.assumeNotNull(credentials, credentials.getAWSAccessKeyId(), credentials.getAWSSecretKey());
