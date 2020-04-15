@@ -33,14 +33,21 @@ import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithWebIdentityRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithWebIdentityResult;
 import com.amazonaws.services.securitytoken.model.Credentials;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterResult;
+import com.amazonaws.services.simplesystemsmanagement.model.ParameterNotFoundException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -368,8 +375,34 @@ public class Auth extends HttpServlet {
 			String embeddedProperty = properties.getProperty(key);
 			if (!missing(embeddedProperty)) return embeddedProperty;
 		}
+		{
+			String ssmParameter = getSSMParameter(key);
+			if (!missing(ssmParameter)) {
+				// looking this up is expensive, let's cache it for next time
+				properties.setProperty(key, ssmParameter);
+				return ssmParameter;
+			}
+		}
 		if (required) throw new RuntimeException("Cannot find value for "+key);
 		return null;
+	}
+	
+	private String getSSMParameter(String name) {
+		try {
+			DefaultAWSCredentialsProviderChain.getInstance().getCredentials();
+		} catch (SdkClientException e) {
+			return null;
+		}
+		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+		GetParameterRequest getParameterRequest = new GetParameterRequest();
+		getParameterRequest.setName(name);
+		getParameterRequest.setWithDecryption(true);
+		try {
+			GetParameterResult getParameterResult = ssmClient.getParameter(getParameterRequest);
+			return getParameterResult.getParameter().getValue();
+		} catch (ParameterNotFoundException e) {
+			return null;
+		}
 	}
 
 }
