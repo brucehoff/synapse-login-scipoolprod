@@ -12,7 +12,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,9 +45,9 @@ import com.amazonaws.services.securitytoken.model.AssumeRoleWithWebIdentityResul
 import com.amazonaws.services.securitytoken.model.Credentials;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest;
-import com.amazonaws.services.simplesystemsmanagement.model.GetParametersResult;
-import com.amazonaws.services.simplesystemsmanagement.model.Parameter;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterResult;
+import com.amazonaws.services.simplesystemsmanagement.model.ParameterNotFoundException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -395,17 +394,15 @@ public class Auth extends HttpServlet {
 			return null;
 		}
 		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
-		GetParametersRequest getParametersRequest = new GetParametersRequest();
-		getParametersRequest.setNames(Collections.singletonList(name));
-		getParametersRequest.setWithDecryption(true);
-		GetParametersResult getParametersResult = ssmClient.getParameters(getParametersRequest);
-		List<Parameter> paramList = getParametersResult.getParameters();
-		for (Parameter parameter : paramList) {
-			if (parameter.getName().equals(name)) {
-				return parameter.getValue();
-			}
+		GetParameterRequest getParameterRequest = new GetParameterRequest();
+		getParameterRequest.setName(name);
+		getParameterRequest.setWithDecryption(true);
+		try {
+			GetParameterResult getParameterResult = ssmClient.getParameter(getParameterRequest);
+			return getParameterResult.getParameter().getValue();
+		} catch (ParameterNotFoundException e) {
+			return null;
 		}
-		return null;
 	}
 
 }

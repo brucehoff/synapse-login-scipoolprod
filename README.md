@@ -27,8 +27,7 @@ In the case that a parameter is passed in multiple ways, priority is as follows:
 - Properties file entry
 - SSM parameter
 
-Note:  The intention is to use SSM to securely store the OAuth client secret.  We recommend storing
-it as an SSM _secure string_.
+Note:  The intention is to use SSM to securely store the OAuth client secret.  Instructions on how to put a parameter into SSM can be found [here](https://docs.aws.amazon.com/cli/latest/reference/ssm/put-parameter.html).  To store the client secret, use `--name SYNAPSE_OAUTH_CLIENT_SECRET`, `--type SecureString` and set `--value` to the client secret.
 
 ### Team to role map
 This defines the mapping between the synapse team and the AWS role. When
