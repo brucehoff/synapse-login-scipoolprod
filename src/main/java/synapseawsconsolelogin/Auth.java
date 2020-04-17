@@ -33,6 +33,7 @@ import org.scribe.model.OAuthConfig;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -47,7 +48,6 @@ import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.GetParameterResult;
-import com.amazonaws.services.simplesystemsmanagement.model.ParameterNotFoundException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -400,7 +400,7 @@ public class Auth extends HttpServlet {
 		try {
 			GetParameterResult getParameterResult = ssmClient.getParameter(getParameterRequest);
 			return getParameterResult.getParameter().getValue();
-		} catch (ParameterNotFoundException e) {
+		} catch (AmazonClientException e) {
 			return null;
 		}
 	}
