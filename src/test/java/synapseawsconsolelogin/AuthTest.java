@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -107,18 +108,24 @@ public class AuthTest {
 		assertNull(auth.getProperty(propertyName, false));
 		
 		// now let's store the property in SSM
-		AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
-		
-		PutParameterRequest putParameterRequest = new PutParameterRequest();
-		putParameterRequest.setName(propertyName);
-		putParameterRequest.setValue(propertyValue);
-		putParameterRequest.setType(ParameterType.SecureString);
-		ssmClient.putParameter(putParameterRequest);
+		try {
+			AWSSimpleSystemsManagement ssmClient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+			
+			PutParameterRequest putParameterRequest = new PutParameterRequest();
+			putParameterRequest.setName(propertyName);
+			putParameterRequest.setValue(propertyValue);
+			putParameterRequest.setType(ParameterType.SecureString);
+			ssmClient.putParameter(putParameterRequest);
+		} catch (AmazonClientException e) {
+			// cannot continue with this integration test
+			return;
+		}
 		
 		// verify that the property is now available
 		assertEquals(propertyValue, auth.getProperty(propertyName, false));
 	}
 
+	@Test
 	public void testGetConsoleLoginURL() throws Exception {
 		StringBuffer urlBuffer = new StringBuffer();
 		urlBuffer.append("https:www.foo.com/bar");
