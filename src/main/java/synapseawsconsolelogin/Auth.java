@@ -67,7 +67,7 @@ public class Auth extends HttpServlet {
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
-            "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%2$s";
+            "?Action=getSigninToken&SessionDuration=%1$s&SessionType=json&Session=%2$s";
 	private static final String PROPERTIES_FILENAME_PARAMETER = "PROPERTIES_FILENAME";
 	private static final int SESSION_TIMEOUT_SECONDS_DEFAULT = 43200;
 	
