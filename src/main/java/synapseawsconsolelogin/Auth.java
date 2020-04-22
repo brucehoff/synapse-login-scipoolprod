@@ -67,8 +67,7 @@ public class Auth extends HttpServlet {
 	private static final String AWS_SIGN_IN_URL = "https://signin.aws.amazon.com/federation";
 	private static final String USER_CLAIMS_DEFAULT="userid";
 	private static final String SIGNIN_TOKEN_URL_TEMPLATE = AWS_SIGN_IN_URL + 
-//            "?Action=getSigninToken&DurationSeconds=%1$s&SessionType=json&Session=%2$s";
-    "?Action=getSigninToken&SessionDuration=%1$s&SessionType=json&Session=%2$s";
+				"?Action=getSigninToken&SessionDuration=%1$s&SessionType=json&Session=%2$s";
 	private static final String PROPERTIES_FILENAME_PARAMETER = "PROPERTIES_FILENAME";
 	private static final int SESSION_TIMEOUT_SECONDS_DEFAULT = 43200;
 	
@@ -196,6 +195,7 @@ public class Auth extends HttpServlet {
 		String getSigninTokenURL = String.format(SIGNIN_TOKEN_URL_TEMPLATE, 
 				sessionTimeoutSeconds, URLEncoder.encode(sessionJson,"UTF-8"));
 		
+		// Send the request to the AWS federation endpoint to get the sign-in token
 		String returnContent = httpGetExecutor.executeHttpGet(getSigninTokenURL);
 
 		String signinToken = new JSONObject(returnContent).getString("SigninToken");
@@ -312,12 +312,9 @@ public class Auth extends HttpServlet {
 				@Override
 				public String executeHttpGet(String urlString) throws IOException {
 					URL url = new URL(urlString);
-
-					// Send the request to the AWS federation endpoint to get the sign-in token
 					URLConnection conn = url.openConnection();
-
-					BufferedReader bufferReader = new BufferedReader(new 
-					  InputStreamReader(conn.getInputStream()));  
+					BufferedReader bufferReader = new BufferedReader(
+							new InputStreamReader(conn.getInputStream()));  
 					return bufferReader.readLine();
 				}});
 			
