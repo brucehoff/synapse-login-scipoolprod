@@ -3,7 +3,7 @@ package synapseawsconsolelogin;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +32,9 @@ public class AuthTest {
 	@Mock
 	private HttpServletRequest req;
 	
+	@Mock
+	private HttpGetExecutor mockHttpGetExecutor;
+
 	@Test
 	public void testReadTeamToArnMap() {
 		System.setProperty("TEAM_TO_ROLE_ARN_MAP","[{\"teamId\":\"123456\",\"roleArn\":\"arn:aws:iam::foo\"},{\"teamId\":\"345678\",\"roleArn\":\"arn:aws:iam::bar\"}]");
@@ -124,7 +127,7 @@ public class AuthTest {
 		// verify that the property is now available
 		assertEquals(propertyValue, auth.getProperty(propertyName, false));
 	}
-
+	
 	@Test
 	public void testGetConsoleLoginURL() throws Exception {
 		StringBuffer urlBuffer = new StringBuffer();
@@ -138,15 +141,17 @@ public class AuthTest {
 		credentials.setSecretAccessKey("keySecret");
 		credentials.setSessionToken("token");
 		
+		when(mockHttpGetExecutor.executeHttpGet(anyString())).thenReturn("{\"SigninToken\":\"token\"}");
+		
 		// method under test
 		Auth auth = new Auth();
-		String actual = auth.getConsoleLoginURL(req, credentials);
+		String actual = auth.getConsoleLoginURL(req, credentials, mockHttpGetExecutor);
 		
-		String expectedPrefix = "https://signin.aws.amazon.com/federation?Action=login&SigninToken=";
-		String expectedSuffix = "&Issuer=https%3Awww.foo.com&Destination=https%3A%2F%2Fus-east-1.console.aws.amazon.com%2Fservicecatalog%2Fhome%3Fregion%3Dus-east-1%23%2Fproducts";
+		String expected = "https://signin.aws.amazon.com/federation?Action=login&SigninToken=token"+
+		 "&Issuer=https%3Awww.foo.com&Destination=https%3A%2F%2Fus-east-1.console.aws.amazon.com%2Fservicecatalog%2Fhome%3Fregion%3Dus-east-1%23%2Fproducts";
 		
-		assertTrue(actual.startsWith(expectedPrefix));
-		assertTrue(actual.endsWith(expectedSuffix));
+		assertEquals(expected, actual);
+
 	}
 
 }
